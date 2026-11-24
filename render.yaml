@@ -15,3 +15,24 @@ services:
       # Neon 数据库的连接地址。创建时 Render 会让你粘贴进去（不会存进代码里）。
       - key: DATABASE_URL
         sync: false
+
+  # KaiHei 开黑：游戏陪玩平台（代码在 kaihei/ 文件夹）
+  - type: web
+    name: kaihei
+    runtime: node
+    plan: free
+    region: ohio
+    rootDir: kaihei
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # 可以和 trove 用同一个 Neon 数据库（表名不同，互不影响），也可以新建一个
+      - key: DATABASE_URL
+        sync: false
+      # 后台管理员的用户名，多个用逗号隔开，比如：boss,ryan.h
+      - key: ADMIN_USERS
+        sync: false
