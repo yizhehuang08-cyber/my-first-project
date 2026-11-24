@@ -28,7 +28,7 @@ npm test           # 运行接口测试
 
 ### 放到网上
 
-见 **[DEPLOY.md](DEPLOY.md)**：Render（运行 App，Starter 付费版不休眠）+ Neon（Postgres 数据库，免费版），大约 15 分钟。
+见 **[DEPLOY.md](DEPLOY.md)**：免费用 Render（运行 App）+ Neon（Postgres 数据库），大约 15 分钟。
 
 设置了环境变量 `DATABASE_URL` 时，数据和照片存进 Postgres；没设置时存在本地 `data/` 文件夹。用数据库跑测试：`TEST_DATABASE_URL=postgresql://... npm run test:pg`。
 

@@ -1,8 +1,8 @@
-# 把 trove 放到网上（Render 付费版 + Neon 免费版）
+# 把 trove 放到网上（免费：Render + Neon）
 
 做完以后你会得到一个 `https://trove-xxxx.onrender.com` 这样的网址，发给同学，用手机打开就能注册使用。
 
-大约需要 15 分钟。费用：Render Starter 大约每月 7 美元（需要绑信用卡，按网站上显示的价格为准），Neon 免费。
+大约需要 15 分钟。费用：全部免费（Render Free + Neon Free）。
 
 网站上的按钮名字可能和这里写的略有不同，找意思相近的就行。
 
@@ -38,7 +38,7 @@ Render 默认从 `main` 分支部署。如果代码还在 `claude/...` 分支上
 2. 右上角点 **New +** → **Blueprint**
 3. 第一次会让你连接 GitHub：授权 Render 访问 `my-first-project` 这个仓库
 4. 选择 `my-first-project` 仓库，分支选 `main`
-5. Render 会读到仓库里的 `render.yaml`，显示要创建一个叫 **trove** 的 Web Service，套餐是 **Starter**（付费、不休眠）。会提示你添加付款方式
+5. Render 会读到仓库里的 `render.yaml`，显示要创建一个叫 **trove** 的 Web Service，套餐是 **Free**
 6. 它会让你填 **DATABASE_URL**：把第 1 步复制的那串地址粘贴进去
 7. 点 **Apply**（或 Deploy Blueprint）
 8. 等 2–5 分钟。在 trove 服务的 **Logs** 里看到这行就说明成功了：
@@ -64,7 +64,8 @@ Render 默认从 `main` 分支部署。如果代码还在 `claude/...` 分支上
 ## 以后
 
 - **更新**：代码每次合并到 `main`，Render 会自动重新部署，几分钟后大家刷新就是新版本
-- **想省钱先试用？** 在 Render 服务的 **Settings → Instance Type** 改成 Free 就行。免费版 15 分钟没人用会"睡着"，下一个人打开要等 30–60 秒
+- **第一次打开很慢？** 免费版 15 分钟没人用会"睡着"，下一个人打开要等 30–60 秒，之后就正常了
+- **想要不休眠？** 在 Render 服务的 **Settings → Instance Type** 改成 Starter（付费，大约每月 7 美元，以网站显示为准），数据都在 Neon，不会丢
 - **Neon 快满了？** 免费额度大约 0.5 GB，Neon 会提醒；到时在 Neon 的 Billing 里升级，App 不用改
 - **看数据**：Neon 网站上点 **Tables** 可以看到 `trove_state`（所有数据）和 `trove_photos`（照片）
 - **出问题**：先看 Render 里 trove 服务的 **Logs**，把最后几行红字发给 Claude
