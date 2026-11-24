@@ -1,0 +1,17 @@
+# Render 部署配置（Blueprint）。在 Render 上选 "New → Blueprint" 并选这个仓库，就会按这里的设置创建服务。
+services:
+  - type: web
+    name: trove
+    runtime: node
+    plan: free  # 免费版：15 分钟没人用会休眠。想要不休眠，改成 starter（付费）
+    region: ohio
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # Neon 数据库的连接地址。创建时 Render 会让你粘贴进去（不会存进代码里）。
+      - key: DATABASE_URL
+        sync: false
