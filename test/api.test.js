@@ -254,3 +254,47 @@ test('data survives a restart', async () => {
   assert.strictEqual(g.status, 501, 'Google is off without client id');
   s2.close();
 });
+
+// ---------- 通知 ----------
+test('notifications: replies to my comments and questions on my notes', async () => {
+  const author = (await signup({ username: 'baker', email: 'baker@y.com', password: '12345678' })).data.token;
+  const fan = (await signup({ username: 'fan', email: 'fan@y.com', password: '12345678' })).data.token;
+  const note = (await call('POST', '/api/notes', { token: author, body: { title: 'Croissants on Goodwin', worth: true } })).data;
+
+  assert.deepStrictEqual((await call('GET', '/api/notifications/count', { token: fan })).data, { unread: 0 });
+
+  // fan 提问 → 作者收到 question
+  const q = (await call('POST', `/api/notes/${note.id}/questions`, { token: fan, body: { text: 'Open on Sunday?' } })).data.questions[0];
+  let inbox = (await call('GET', '/api/notifications', { token: author })).data;
+  assert.strictEqual(inbox.unread, 1);
+  assert.strictEqual(inbox.items[0].kind, 'question');
+  assert.strictEqual(inbox.items[0].noteId, note.id);
+
+  // 作者回复 → fan 收到 reply，带上 fan 原来的话；作者自己不收到自己的回复
+  await call('POST', `/api/notes/${note.id}/questions`, { token: author, body: { text: 'Yes, 8 to 2', replyTo: q.id } });
+  inbox = (await call('GET', '/api/notifications', { token: fan })).data;
+  assert.strictEqual(inbox.unread, 1);
+  assert.deepStrictEqual(
+    { kind: inbox.items[0].kind, from: inbox.items[0].from, yourText: inbox.items[0].yourText, noteTitle: inbox.items[0].noteTitle },
+    { kind: 'reply', from: 'baker', yourText: 'Open on Sunday?', noteTitle: 'Croissants on Goodwin' }
+  );
+  assert.strictEqual((await call('GET', '/api/notifications', { token: author })).data.items.length, 1);
+
+  // 标记已读
+  await call('POST', '/api/notifications/read', { token: fan });
+  assert.strictEqual((await call('GET', '/api/notifications/count', { token: fan })).data.unread, 0);
+  assert.strictEqual((await call('GET', '/api/notifications', { token: fan })).data.items[0].unread, false);
+
+  // 回复自己的评论不提醒
+  const mine = (await call('POST', `/api/notes/${note.id}/questions`, { token: fan, body: { text: 'Also, parking?' } })).data.questions.at(-1);
+  await call('POST', `/api/notes/${note.id}/questions`, { token: fan, body: { text: 'Never mind, found it', replyTo: mine.id } });
+  assert.strictEqual((await call('GET', '/api/notifications/count', { token: fan })).data.unread, 0);
+
+  assert.strictEqual((await call('GET', '/api/notifications')).status, 401);
+});
+
+test('ryan.h gets the two sample notifications after signing up', async () => {
+  const t = (await signup({ username: 'ryan.h', email: 'ryanh@y.com', password: '12345678' })).data.token;
+  const inbox = (await call('GET', '/api/notifications', { token: t })).data;
+  assert.deepStrictEqual(inbox.items.map((n) => [n.kind, n.from]), [['question', 'amy.l'], ['reply', 'maya.c']]);
+});

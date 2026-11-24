@@ -29,6 +29,8 @@
     query: '',
     notes: [],
     me: null,
+    unread: 0, // 未读通知数
+    inbox: null, // 通知列表
     detail: null,
     replyTo: null, // { id, author } 正在回复的评论
     askText: '',
@@ -75,6 +77,8 @@
     back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
     pin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
     send: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`,
+    bell: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg>`,
+    chevron: `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>`,
     gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
     mail: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>`,
     phone: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>`,
@@ -372,7 +376,11 @@
           <div class="sub" style="font-size:14px">${m.mine.length} notes · following ${m.following.length}</div>
         </div>
       </div>
-      <button class="row-link" data-tab="account">${icon.lock}<span>Account &amp; sign-in</span><span class="sub">${linkedSummary()}</span></button>
+      <div class="links">
+        <button class="row-link" data-tab="inbox">${icon.bell}<span>Notifications</span>
+          ${state.unread ? `<span class="count" aria-label="${state.unread} unread">${state.unread}</span>` : '<span class="sub">All caught up</span>'}${icon.chevron}</button>
+        <button class="row-link" data-tab="account">${icon.lock}<span>Account &amp; sign-in</span><span class="sub">${linkedSummary()}</span>${icon.chevron}</button>
+      </div>
       <div class="label-caps" style="margin-top:24px">Saved · ${m.saved.length}</div>
       ${miniGrid(m.saved, 'Tap the bookmark on any note to keep it here.')}
       <div class="label-caps">My notes · ${m.mine.length}</div>
@@ -384,6 +392,42 @@
     const a = state.account;
     if (!a) return '';
     return [a.email && 'Email', a.phone && 'Phone', a.google && 'Google'].filter(Boolean).join(' · ');
+  }
+
+  // ---------- 通知 ----------
+  function viewInbox() {
+    const items = state.inbox ? state.inbox.items : null;
+    const line = (n) => n.kind === 'reply'
+      ? `<b>${esc(n.from)}</b> replied to your comment`
+      : `<b>${esc(n.from)}</b> commented on your note`;
+    return `<main class="screen">
+      <div class="bar-head">
+        <button class="icon-btn" data-tab="me" aria-label="Back">${icon.back}</button>
+        <h1>Notifications</h1>
+        <span style="width:44px"></span>
+      </div>
+      ${!items ? '<div class="empty">Loading…</div>'
+        : !items.length ? '<div class="empty">No notifications yet. When someone replies to your comment or asks about your note, it shows up here.</div>'
+        : `<div class="inbox">${items.map((n) => `<button class="notif${n.unread ? ' unread' : ''}" data-notif="${n.noteId}" data-comment="${n.id}">
+            <span class="dot" style="background:${nameTint(n.from)};width:36px;height:36px"></span>
+            <span class="notif-main">
+              <span class="notif-line">${line(n)}<span class="sub"> · ${ago(n.createdAt)}</span></span>
+              <span class="notif-text">${esc(n.text)}</span>
+              ${n.yourText ? `<span class="notif-quote">You: ${esc(n.yourText)}</span>` : ''}
+              <span class="notif-note">${esc(n.noteTitle)}</span>
+            </span>
+            <span class="notif-thumb" style="${bgStyle({ tint: n.tint, photos: n.photo ? [n.photo] : [] })}"></span>
+            ${n.unread ? '<span class="unread-dot" aria-label="Unread"></span>' : ''}
+          </button>`).join('')}</div>`}
+    </main>`;
+  }
+
+  // 后台刷新未读数，用来显示红点
+  async function refreshUnread() {
+    try {
+      const r = await api('/api/notifications/count');
+      if (r.unread !== state.unread) { state.unread = r.unread; render(); }
+    } catch (e) { /* 不影响使用 */ }
   }
 
   // ---------- 账号设置 ----------
@@ -538,13 +582,13 @@
   }
 
   function viewTabs() {
-    const cur = state.tab === 'account' ? 'me' : state.tab;
-    const t = (k, label, svg) => `<button data-tab="${k}" aria-label="${label}" ${cur === k ? 'aria-current="page"' : ''}>${svg}</button>`;
+    const cur = state.tab === 'account' || state.tab === 'inbox' ? 'me' : state.tab;
+    const t = (k, label, svg, dot) => `<button data-tab="${k}" aria-label="${label}${dot ? ', new notifications' : ''}" ${cur === k ? 'aria-current="page"' : ''}>${svg}${dot ? '<span class="tab-dot"></span>' : ''}</button>`;
     return `<div class="tabs"><nav aria-label="Main">
       ${t('home', 'Home', icon.home)}
       ${t('search', 'Search', icon.search())}
       <button class="new" data-tab="post" aria-label="New note">${icon.plus()}</button>
-      ${t('me', 'Profile', icon.user)}
+      ${t('me', 'Profile', icon.user, state.unread > 0)}
     </nav></div>`;
   }
 
@@ -554,7 +598,7 @@
       document.body.style.overflow = '';
       return;
     }
-    const screen = { home: viewHome, search: viewSearch, post: viewPost, me: viewMe, account: viewAccount }[state.tab]();
+    const screen = { home: viewHome, search: viewSearch, post: viewPost, me: viewMe, account: viewAccount, inbox: viewInbox }[state.tab]();
     $app.innerHTML = screen
       + (state.tab !== 'post' ? viewTabs() : '')
       + (state.detail ? viewDetail() : '')
@@ -579,17 +623,33 @@
     window.scrollTo(0, 0);
     try {
       if (tab === 'home' || tab === 'search') await loadNotes();
-      if (tab === 'me' || tab === 'account') await loadMe();
+      if (tab === 'me' || tab === 'account') { await loadMe(); state.unread = state.me.unread; }
+      if (tab === 'inbox') {
+        state.inbox = null;
+        render();
+        state.inbox = await api('/api/notifications');
+        // 打开通知页 = 全部已读（列表里这次仍然标出哪些是新的）
+        if (state.inbox.unread) { await api('/api/notifications/read', { method: 'POST' }); state.unread = 0; }
+      }
       render();
+      if (tab !== 'me' && tab !== 'account' && tab !== 'inbox') refreshUnread();
     } catch (e) { if (state.account) toast(e.message); }
   }
 
-  async function openNote(id) {
+  async function openNote(id, commentId) {
     try {
       state.detail = await api('/api/notes/' + id);
       state.replyTo = null;
       state.askText = '';
       render();
+      if (commentId) {
+        // 从通知点进来：滚到那条评论，并闪一下
+        const el = $app.querySelector(`[data-reply="${Number(commentId)}"]`);
+        if (el) {
+          el.scrollIntoView({ block: 'center' });
+          el.classList.add('flash');
+        } else toast('That comment was removed');
+      }
       try { history.pushState({ note: id }, ''); pushed = true; } catch (e) { pushed = false; }
     } catch (e) { toast(e.message); }
   }
@@ -723,6 +783,7 @@
     // ----- 登录后 -----
     if (d.tab) return go(d.tab);
     if (d.open) return openNote(Number(d.open));
+    if (d.notif) return openNote(Number(d.notif), Number(d.comment));
     if ('close' in d) return leaveDetail();
     if (d.filter) { state.filter = d.filter; return go('home'); }
     if (d.chip) {

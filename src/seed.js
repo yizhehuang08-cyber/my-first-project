@@ -34,12 +34,22 @@ module.exports = function seed() {
     { id: 8, author: 'amy.l', text: 'Do they take cards or is it cash only?', replyTo: null, createdAt: '2026-11-21T02:00:00.000Z' },
     { id: 9, author: 'jt.eats', text: 'Cards are fine. Tap to pay works too.', replyTo: 8, createdAt: '2026-11-21T02:30:00.000Z' }
   ];
+  // 给 ryan.h 准备的示例通知：别人回复了 ryan.h 的评论，以及有人在 ryan.h 的帖子下提问
+  const topper = notes.find((n) => n.author === 'maya.c');
+  topper.questions = [
+    { id: 10, author: 'ryan.h', text: 'Does it fit under a fitted sheet, or does it slide around?', replyTo: null, createdAt: '2026-11-22T18:00:00.000Z' },
+    { id: 11, author: 'maya.c', text: 'It stays put with a deep-pocket sheet. A regular one pops off.', replyTo: 10, createdAt: '2026-11-22T19:10:00.000Z' }
+  ];
+  const carryOn = notes.find((n) => n.author === 'ryan.h');
+  carryOn.questions = [
+    { id: 12, author: 'amy.l', text: 'Did the T.J. Maxx one have a warranty?', replyTo: null, createdAt: '2026-11-23T15:20:00.000Z' }
+  ];
   // 示例作者的用户名先占上（没有任何登录方式，别人不能冒用）。
   // ryan.h 不占：那是你自己的示例帖子，你注册 ryan.h 就能拥有它。
   const users = {};
   for (const name of new Set(notes.map((n) => n.author).concat('amy.l'))) {
     if (name === 'ryan.h') continue;
-    users[name] = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: notes[0].createdAt };
+    users[name] = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], notifSeenAt: null, createdAt: notes[0].createdAt };
   }
-  return { lastId: 9, notes, users, sessions: {} };
+  return { lastId: 12, notes, users, sessions: {} };
 };

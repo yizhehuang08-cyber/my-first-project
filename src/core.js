@@ -37,6 +37,7 @@
       u.google = u.google || null;
       u.saved = u.saved || [];
       u.following = u.following || [];
+      if (u.notifSeenAt === undefined) u.notifSeenAt = null; // 上次看通知的时间
     }
     for (const n of db.notes) {
       n.questions = (n.questions || []).map((q) => ({ replyTo: null, ...q }));
@@ -71,7 +72,7 @@
     }
 
     function newUser(name, fields) {
-      const u = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: iso(), ...fields };
+      const u = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], notifSeenAt: null, createdAt: iso(), ...fields };
       db.users[name] = u;
       return u;
     }
@@ -140,6 +141,33 @@
       save();
       return account(u);
     }
+
+    // ---------- 通知 ----------
+    // 不单独存通知，直接从评论里算出来：
+    //   reply    = 有人回复了我的评论
+    //   question = 有人在我的帖子下发了新评论（不是回复别人的）
+    function notifications(usr) {
+      const items = [];
+      for (const note of db.notes) {
+        const byId = new Map(note.questions.map((q) => [q.id, q]));
+        for (const q of note.questions) {
+          if (q.author === usr.name) continue; // 自己发的不提醒自己
+          const parent = q.replyTo ? byId.get(q.replyTo) : null;
+          let kind = null;
+          if (parent && parent.author === usr.name) kind = 'reply';
+          else if (!q.replyTo && note.author === usr.name) kind = 'question';
+          if (!kind) continue;
+          items.push({
+            id: q.id, kind, from: q.author, text: q.text, createdAt: q.createdAt,
+            noteId: note.id, noteTitle: note.title, tint: note.tint, photo: note.photos[0] || null,
+            yourText: parent ? parent.text : null,
+            unread: !usr.notifSeenAt || q.createdAt > usr.notifSeenAt
+          });
+        }
+      }
+      return items.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    const unreadCount = (usr) => notifications(usr).filter((n) => n.unread).length;
 
     // ---------- 帖子展示 ----------
     function view(note, me) {
@@ -273,11 +301,27 @@
         return ok(notes.map((n) => view(n, me)));
       }
 
+      if (key === 'GET /api/notifications') {
+        const usr = needUser();
+        const items = notifications(usr);
+        return ok({ unread: items.filter((n) => n.unread).length, items });
+      }
+
+      if (key === 'GET /api/notifications/count') return ok({ unread: unreadCount(needUser()) });
+
+      if (key === 'POST /api/notifications/read') {
+        const usr = needUser();
+        usr.notifSeenAt = iso();
+        save();
+        return ok({ unread: 0 });
+      }
+
       if (key === 'GET /api/me') {
         const usr = needUser();
         return ok({
           name: usr.name,
           account: account(usr),
+          unread: unreadCount(usr),
           following: usr.following,
           saved: usr.saved.map((id) => db.notes.find((n) => n.id === id)).filter(Boolean).map((n) => view(n, usr)),
           mine: sorted().filter((n) => n.author === usr.name).map((n) => view(n, usr))
