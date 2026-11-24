@@ -26,6 +26,12 @@ npm start          # 打开 http://localhost:3000
 npm test           # 运行接口测试
 ```
 
+### 放到网上
+
+见 **[DEPLOY.md](DEPLOY.md)**：免费用 Render（运行 App）+ Neon（Postgres 数据库），大约 15 分钟。
+
+设置了环境变量 `DATABASE_URL` 时，数据和照片存进 Postgres；没设置时存在本地 `data/` 文件夹。用数据库跑测试：`TEST_DATABASE_URL=postgresql://... npm run test:pg`。
+
 ### iPad / 手机上直接看（演示版）
 
 `npm run build:demo` 会生成 `dist/trove-demo.html`：一个不需要服务器的单文件版本，逻辑和服务器完全一样（共用 `src/core.js`），数据存在浏览器里。
@@ -50,7 +56,7 @@ GOOGLE_CLIENT_ID=xxx GOOGLE_CLIENT_SECRET=yyy npm start
 server.js          启动入口
 src/core.js        核心逻辑：账号、登录、帖子、投票、评论（服务器和演示版共用）
 src/app.js         服务器（Express）：照片保存、Google 登录、把 /api 交给 core
-src/store.js       JSON 文件读写
+src/store.js       数据存储：本地 JSON 文件，或 Postgres 数据库
 src/seed.js        示例数据
 public/            前端（HTML / CSS / 原生 JS）；local-api.js 是演示版的浏览器内后端
 scripts/           生成演示版
@@ -88,4 +94,5 @@ test/              接口测试
 
 - 邮箱和手机号还没有验证码验证（发邮件 / 短信需要接 SendGrid、Twilio 之类的服务），所以也还没有"忘记密码"
 - 通知只在打开 App 时出现，还没有推送到手机锁屏
-- 数据存在一个 JSON 文件里，适合原型和少量用户；用户多了要换成真正的数据库（如 SQLite / Postgres）
+- 所有数据（除照片）作为一整份 JSON 存在数据库的一行里，每次改动整份重写。几百个用户没问题；用户到几千人时，应该拆成正式的数据表（users、notes、comments…）
+- 服务器只能开一台（数据先读进内存）。免费版本来也只有一台，不影响

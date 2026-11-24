@@ -1,10 +1,9 @@
 // trove 的服务器：托管前端页面，把 /api 请求交给 core.js，另外处理照片保存和 Google 登录。
 const express = require('express');
-const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { promisify } = require('util');
-const Store = require('./store');
+const { FileStore } = require('./store');
 const { createCore, HttpError } = require('./core');
 
 const scrypt = promisify(crypto.scrypt);
@@ -29,13 +28,14 @@ async function verifyPassword(password, stored) {
 
 /**
  * @param {object} o
+ * @param {object} [o.store]     已经打开的数据存储（见 store.js）；不填就用 dataFile / uploadDir 建一个本地文件存储
  * @param {string} [o.dataFile]  数据文件路径（不填 = 只在内存里）
  * @param {string} [o.uploadDir] 照片目录
  * @param {{clientId: string, clientSecret: string, redirectUri?: string}} [o.google] Google 登录配置
  * @param {typeof fetch} [o.fetchImpl] 测试时可以换成假的 fetch
  */
-function createApp({ dataFile, uploadDir, google, fetchImpl = fetch } = {}) {
-  const store = new Store(dataFile);
+function createApp({ store, dataFile, uploadDir, google, fetchImpl = fetch } = {}) {
+  store = store || new FileStore(dataFile, uploadDir);
   const googleOn = !!(google && google.clientId && google.clientSecret);
 
   function savePhoto(dataUrl) {
@@ -43,10 +43,7 @@ function createApp({ dataFile, uploadDir, google, fetchImpl = fetch } = {}) {
     if (!m || !PHOTO_TYPES[m[1]]) throw new HttpError(400, 'Photos must be JPG, PNG or WebP');
     const buf = Buffer.from(m[2], 'base64');
     if (buf.length > MAX_PHOTO_BYTES) throw new HttpError(400, 'Each photo must be under 2 MB');
-    if (!uploadDir) throw new HttpError(500, 'Photo storage is not set up');
-    const name = crypto.randomBytes(12).toString('hex') + '.' + PHOTO_TYPES[m[1]];
-    fs.writeFileSync(path.join(uploadDir, name), buf);
-    return '/uploads/' + name;
+    return store.savePhoto(buf, m[1], PHOTO_TYPES[m[1]]);
   }
 
   const core = createCore({
@@ -62,10 +59,21 @@ function createApp({ dataFile, uploadDir, google, fetchImpl = fetch } = {}) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '12mb' }));
-  if (uploadDir) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-    app.use('/uploads', express.static(uploadDir, { maxAge: '7d' }));
+  if (store.uploadDir) app.use('/uploads', express.static(store.uploadDir, { maxAge: '7d' }));
+  if (store.getPhoto) {
+    // 数据库版：照片从数据库里读
+    app.get('/photos/:name', async (req, res, next) => {
+      try {
+        const photo = await store.getPhoto(req.params.name);
+        if (!photo) return res.status(404).end();
+        res.set('Content-Type', photo.mime);
+        res.set('Cache-Control', 'public, max-age=31536000, immutable'); // 照片不会变，浏览器可以一直缓存
+        res.send(photo.data);
+      } catch (e) { next(e); }
+    });
   }
+  // 健康检查：部署平台用它判断服务是否正常
+  app.get('/healthz', (req, res) => res.json({ ok: true }));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
   const tokenOf = (req) => {
@@ -128,9 +136,11 @@ function createApp({ dataFile, uploadDir, google, fetchImpl = fetch } = {}) {
         const u = store.data.users[st.user];
         if (!u) throw new HttpError(401, 'Please log in again');
         core.linkGoogle(u, profile);
+        await store.flush();
         return back({ linked: 'google' });
       }
       const r = await core.googleSignIn(profile);
+      await store.flush();
       back({ auth: r.token });
     } catch (e) {
       back({ auth_error: e instanceof HttpError ? e.message : 'Google sign-in failed' });
@@ -141,6 +151,7 @@ function createApp({ dataFile, uploadDir, google, fetchImpl = fetch } = {}) {
   app.all('/api/*', async (req, res) => {
     try {
       const r = await core.handle(req.method, req.originalUrl, { token: tokenOf(req), body: req.body });
+      await store.flush(); // 确认数据已经存好再回应
       res.status(r.status).json(r.data);
     } catch (e) {
       if (e instanceof HttpError) return res.status(e.status).json({ error: e.message });

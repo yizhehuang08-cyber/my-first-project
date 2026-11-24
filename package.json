@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "test": "node --test test/*.test.js",
-    "build:demo": "node scripts/build-demo.js"
+    "build:demo": "node scripts/build-demo.js",
+    "test:pg": "TEST_DATABASE_URL=${TEST_DATABASE_URL:?set TEST_DATABASE_URL} node --test test/*.test.js"
   },
   "repository": {
     "type": "git",
@@ -17,7 +18,11 @@
   },
   "homepage": "https://github.com/yizhehuang08-cyber/my-first-project#readme",
   "dependencies": {
-    "express": "^4.22.3"
+    "express": "^4.22.3",
+    "pg": "^8.23.1"
   },
-  "private": true
+  "private": true,
+  "engines": {
+    "node": ">=18"
+  }
 }

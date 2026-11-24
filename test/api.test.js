@@ -4,8 +4,23 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { createApp } = require('../src/app');
+const { FileStore, PgStore } = require('../src/store');
 
-let server, base, dir;
+// 设置了 TEST_DATABASE_URL 就用数据库跑这一整套测试，否则用本地文件
+const PG_URL = process.env.TEST_DATABASE_URL;
+let server, base, dir, store;
+
+async function openTestStore() {
+  if (PG_URL) return PgStore.open(PG_URL);
+  return new FileStore(path.join(dir, 'db.json'), path.join(dir, 'uploads'));
+}
+
+// 存下来的原始数据（用来确认密码没有明文保存）
+async function rawSaved() {
+  if (!PG_URL) return fs.readFileSync(path.join(dir, 'db.json'), 'utf8');
+  const r = await store.pool.query('select data::text as t from trove_state where id = 1');
+  return r.rows[0].t;
+}
 
 // 假的 Google：只认 code=good
 const fakeGoogle = async (url) => {
@@ -21,17 +36,25 @@ async function listen(app) {
 
 before(async () => {
   dir = fs.mkdtempSync(path.join(os.tmpdir(), 'trove-test-'));
+  if (PG_URL) {
+    // 每次从空数据库开始
+    const { Pool } = require('pg');
+    const pool = new Pool({ connectionString: PG_URL });
+    await pool.query('drop table if exists trove_state, trove_photos');
+    await pool.end();
+  }
+  store = await openTestStore();
   server = await listen(createApp({
-    dataFile: path.join(dir, 'db.json'),
-    uploadDir: path.join(dir, 'uploads'),
+    store,
     google: { clientId: 'cid', clientSecret: 'secret' },
     fetchImpl: fakeGoogle
   }));
   base = `http://127.0.0.1:${server.address().port}`;
 });
 
-after(() => {
+after(async () => {
   server.close();
+  if (store.close) await store.close();
   fs.rmSync(dir, { recursive: true, force: true });
 });
 
@@ -59,7 +82,7 @@ test('sign up with email, password is stored hashed', async () => {
   assert.strictEqual(r.data.account.email, 'amy@illinois.edu');
   assert.strictEqual(r.data.account.hasPassword, true);
   amy = r.data.token;
-  const raw = fs.readFileSync(path.join(dir, 'db.json'), 'utf8');
+  const raw = await rawSaved();
   assert.ok(!raw.includes('correct horse'), 'plain password must never be saved');
   assert.match(raw, /scrypt\$/);
 });
@@ -185,8 +208,10 @@ test('post a note with a verdict and a photo', async () => {
   });
   assert.strictEqual(r.status, 201);
   assert.strictEqual(r.data.author, 'amy');
-  assert.match(r.data.photos[0], /^\/uploads\/[a-f0-9]+\.png$/);
-  assert.strictEqual((await fetch(base + r.data.photos[0])).status, 200);
+  assert.match(r.data.photos[0], /^\/(uploads|photos)\/[a-f0-9]+\.png$/);
+  const img = await fetch(base + r.data.photos[0]);
+  assert.strictEqual(img.status, 200);
+  assert.strictEqual(Buffer.from(await img.arrayBuffer()).toString(), 'fakepng');
   assert.strictEqual((await call('GET', '/api/notes')).data[0].id, r.data.id, 'newest first');
   const bad = await call('POST', '/api/notes', { token: amy, body: { title: 'x', photos: ['data:text/html;base64,PGI+'] } });
   assert.strictEqual(bad.status, 400);
@@ -246,13 +271,16 @@ test('seed has a sample question with an author reply', async () => {
 });
 
 test('data survives a restart', async () => {
-  const s2 = await listen(createApp({ dataFile: path.join(dir, 'db.json'), uploadDir: path.join(dir, 'uploads') }));
+  // 模拟服务器重启：重新打开存储，再起一个服务
+  const store2 = await openTestStore();
+  const s2 = await listen(createApp({ store: store2 }));
   const b2 = `http://127.0.0.1:${s2.address().port}`;
   const login = await fetch(b2 + '/api/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 'amy', password: 'new secret pw' }) });
   assert.strictEqual(login.status, 200);
   const g = await fetch(b2 + '/api/auth/google/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
   assert.strictEqual(g.status, 501, 'Google is off without client id');
   s2.close();
+  if (store2.close) await store2.close();
 });
 
 // ---------- 通知 ----------
