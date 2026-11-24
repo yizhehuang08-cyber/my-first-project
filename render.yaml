@@ -33,6 +33,6 @@ services:
       # 可以和 trove 用同一个 Neon 数据库（表名不同，互不影响），也可以新建一个
       - key: DATABASE_URL
         sync: false
-      # 后台管理员的用户名，多个用逗号隔开，比如：boss,ryan.h
+      # 后台管理员的用户名，多个用逗号隔开，比如：ryanh,boss
       - key: ADMIN_USERS
-        sync: false
+        value: ryanh
