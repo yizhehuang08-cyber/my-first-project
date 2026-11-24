@@ -189,6 +189,27 @@
     loading: ['加载中…', 'Loading…'],
     buyer: ['买家', 'Buyer'],
     companion_title: ['我的陪玩主页', 'My companion profile'],
+    pay_stripe: ['下单并去付款', 'Book & pay'],
+    stripe_notice: ['通过 Stripe 安全付款（信用卡 / Apple Pay / 支付宝 / 微信支付），卡号不会经过 KaiHei。钱由平台托管：陪玩师 24 小时内没接单自动全额退款；玩完你确认后才结算给陪玩师。', 'Pay securely with Stripe (cards, Apple Pay, Alipay, WeChat Pay); KaiHei never sees your card. Funds are held: full refund if not accepted within 24h, paid out only after you confirm.'],
+    st_pending_payment: ['待付款', 'Awaiting payment'],
+    st_unpaid: ['已作废', 'Not paid'],
+    pay_now: ['去付款', 'Pay now'],
+    pay_hint: ['付款完成后，陪玩师才会收到订单。付款页 30 分钟内有效。', 'The companion sees your order after you pay. The payment page is valid for 30 min.'],
+    paying_back: ['正在确认付款…如果你已经付过款，几秒后会自动刷新', 'Confirming payment… if you already paid, this page updates in a few seconds'],
+    chat_after_pay: ['付款后可以聊天', 'Chat opens after payment'],
+    pay_release_pending: ['正在把钱转给陪玩师…', 'Sending payment to the companion…'],
+    pay_refund_pending: ['退款处理中，一般 5–10 个工作日到账', 'Refund in progress (usually 5–10 business days)'],
+    pay_refunded: ['已退款到原付款方式', 'Refunded to your original payment method'],
+    payouts_title: ['收款账户', 'Payout account'],
+    payouts_need: ['设置 Stripe 收款账户后，你才会出现在首页、可以接单。需要填身份信息和银行卡，大约 5 分钟。', 'Set up a Stripe payout account to appear on the home page and take orders. Takes about 5 minutes (ID + bank account).'],
+    payouts_continue: ['Stripe 还在核实你的信息，或还有资料没填完。', 'Stripe is still verifying you, or some details are missing.'],
+    payouts_setup: ['设置收款账户 →', 'Set up payouts →'],
+    payouts_continue_btn: ['继续填写 →', 'Continue setup →'],
+    payouts_ready: ['收款账户已开通 ✓ 完成的订单会自动转到你的 Stripe 账户，再按 Stripe 的周期打到银行卡。', 'Payouts are on ✓ Completed orders are sent to your Stripe account, then to your bank on Stripe\'s schedule.'],
+    payouts_dashboard: ['打开 Stripe 收款面板', 'Open Stripe dashboard'],
+    cs_needs_payouts: ['待设置收款', 'Set up payouts'],
+    admin_payments: ['转账 / 退款出错（会自动重试）', 'Payment errors (auto-retrying)'],
+    redirecting: ['正在跳转到 Stripe…', 'Opening Stripe…'],
     footer: ['KaiHei 与 Riot Games、Valve 无关。平台只提供陪玩，不提供代练或账号交易。', 'KaiHei is not affiliated with Riot Games or Valve. Duo play only: no boosting or account trading.']
   };
 
@@ -383,6 +404,7 @@
     const c = p.c;
     const isMe = state.me && state.me.account.username === c.name;
     const unit = c.games[p.game].price;
+    const stripeOn = state.config.payment === 'stripe';
     const orderBox = isMe
       ? `<div class="panel"><p class="sub">${t('own_profile')}</p><a class="btn block" href="#/apply">${t('edit_profile')}</a></div>`
       : `<form class="panel stack order-box" data-form="order">
@@ -393,9 +415,9 @@
             <div class="stepper"><button type="button" data-act="hours" data-v="-1">−</button><span>${p.hours}</span><button type="button" data-act="hours" data-v="1">+</button></div></div>
           <label class="f"><span>${t('note')}</span><textarea class="i" name="note" maxlength="300" placeholder="${esc(t('note_ph'))}" data-live="note">${esc(p.note)}</textarea></label>
           <div class="total"><span>${t('total')}</span><b>${money(unit * p.hours)}</b></div>
-          <button class="btn primary block" ${c.status !== 'approved' ? 'disabled' : ''}>${loggedIn() ? t('pay_demo') : t('login_to_book')}</button>
+          <button class="btn primary block" ${c.status !== 'approved' ? 'disabled' : ''}>${loggedIn() ? t(stripeOn ? 'pay_stripe' : 'pay_demo') : t('login_to_book')}</button>
           <p class="err" data-err></p>
-          <div class="notice">${t('demo_notice')}</div>
+          <div class="notice">${t(stripeOn ? 'stripe_notice' : 'demo_notice')}</div>
         </form>`;
 
     return shell('find', `
@@ -486,7 +508,7 @@
   }
 
   const statusChip = (s) => {
-    const cls = { paid: 'warn', accepted: 'on', delivered: 'warn', completed: '', disputed: 'bad', refunded: '' }[s];
+    const cls = { pending_payment: 'warn', unpaid: '', paid: 'warn', accepted: 'on', delivered: 'warn', completed: '', disputed: 'bad', refunded: '' }[s];
     return `<span class="chip ${cls}">${t('st_' + s)}</span>`;
   };
 
@@ -494,7 +516,7 @@
   async function pageOrder(id) {
     if (!loggedIn()) return needLogin();
     const o = await api('/api/orders/' + id);
-    state.page = { o, stars: 0, disputing: false, reporting: false };
+    state.page = { o, stars: 0, disputing: false, reporting: false, returned: document.referrer.includes('stripe.com') };
     return renderOrder(state.page);
   }
 
@@ -517,6 +539,7 @@
     const actions = [];
     if (role === 'companion' && o.status === 'paid') actions.push(`<button class="btn ok" data-act="o" data-v="accept">${t('accept')}</button>`, `<button class="btn danger" data-act="o" data-v="decline" data-confirm="sure_decline">${t('decline')}</button>`);
     if (role === 'companion' && o.status === 'accepted') actions.push(`<button class="btn ok" data-act="o" data-v="deliver">${t('deliver')}</button>`);
+    if (role === 'buyer' && o.status === 'pending_payment') actions.push(`<button class="btn primary" data-act="pay">${t('pay_now')}</button>`, `<button class="btn danger" data-act="o" data-v="cancel">${t('cancel')}</button>`);
     if (role === 'buyer' && o.status === 'paid') actions.push(`<button class="btn danger" data-act="o" data-v="cancel" data-confirm="sure_cancel">${t('cancel_order')}</button>`);
     if (role === 'buyer' && ['accepted', 'delivered'].includes(o.status)) actions.push(`<button class="btn ok" data-act="o" data-v="confirm" data-confirm="sure_confirm">${t('confirm')}</button>`, `<button class="btn danger" data-act="dispute-open">${t('dispute')}</button>`);
 
@@ -541,7 +564,9 @@
         <div class="stack">
           <section class="panel stack">
             <div class="row between"><h1 style="margin:0">#${o.id} · ${esc(gameName(o.game))}</h1>${statusChip(o.status)}</div>
-            ${o.status !== 'refunded' ? `<div class="steps">${order.map((s, i) => `<i class="${i <= stepN ? 'done' : ''}"></i>`).join('')}</div>` : ''}
+            ${o.status === 'pending_payment' ? `<div class="notice">${t(p.returned ? 'paying_back' : 'pay_hint')}</div>` : ''}
+            ${T['pay_' + o.payment.status] && o.payment.provider === 'stripe' && (role !== 'companion' || o.payment.status === 'release_pending') ? `<div class="notice">${t('pay_' + o.payment.status)}</div>` : ''}
+            ${!['refunded', 'unpaid'].includes(o.status) ? `<div class="steps">${order.map((s, i) => `<i class="${i <= stepN ? 'done' : ''}"></i>`).join('')}</div>` : ''}
             <div class="row" style="gap:12px">${avatar(o.companionAvatar, o.companionName, 'sm')}<div><b><a href="#/c/${encodeURIComponent(o.companion)}">${esc(o.companionName)}</a></b><div class="sub small">${o.hours}h × ${money(o.unitPrice)} · ${t('buyer')}: ${esc(o.buyer)}</div></div></div>
             ${o.note ? `<div class="notice">${esc(o.note)}</div>` : ''}
             <div class="total"><span>${role === 'buyer' ? t('total') : t('you_earn', pct())}</span><b>${money(role === 'buyer' ? o.total : o.payout)}</b></div>
@@ -556,7 +581,7 @@
         </div>
         <section class="panel chat"><h2>${t('chat')}</h2>
           <div class="msgs" data-msgs>${msgsHtml(o)}</div>
-          ${chatOpen && role !== 'admin' ? `<form class="composer" data-form="msg"><input class="i" name="text" maxlength="1000" autocomplete="off" placeholder="${esc(t('chat_ph'))}"><button class="btn primary">${t('send')}</button></form>` : `<p class="sub small" style="text-align:center">${t('chat_closed')}</p>`}
+          ${chatOpen && role !== 'admin' ? `<form class="composer" data-form="msg"><input class="i" name="text" maxlength="1000" autocomplete="off" placeholder="${esc(t('chat_ph'))}"><button class="btn primary">${t('send')}</button></form>` : `<p class="sub small" style="text-align:center">${t(o.status === 'pending_payment' ? 'chat_after_pay' : 'chat_closed')}</p>`}
         </section>
       </div>`);
   }
@@ -584,6 +609,10 @@
   async function pageMe() {
     if (!loggedIn()) return needLogin();
     await loadMe();
+    // 从 Stripe 收款设置页回来：问一下 Stripe 最新状态
+    if (state.me.payouts && state.me.payouts.account && !state.me.payouts.ready) {
+      try { await api('/api/companion/payouts'); await loadMe(); } catch (e) { /* ignore */ }
+    }
     const m = state.me;
     const c = m.companion;
     let comp;
@@ -591,16 +620,24 @@
       comp = `<section class="panel stack"><h2>${t('become')}</h2><p class="sub" style="margin:0">${t('become_sub', pct())}</p><a class="btn primary" href="#/apply">${t('apply_now')}</a></section>`;
     } else {
       const chip = { pending: 'warn', rejected: 'bad', suspended: 'bad', approved: 'on' }[c.status];
+      const po = m.payouts;
+      const needsPayouts = po && po.enabled && !po.ready;
+      const payouts = po && po.enabled && c.status !== 'suspended' ? `<div class="notice stack">
+          <b>${t('payouts_title')}</b>
+          <div>${po.ready ? t('payouts_ready') : po.account && po.detailsSubmitted ? t('payouts_continue') : t('payouts_need')}</div>
+          <div class="row">${po.ready ? `<button class="btn sm" data-act="payouts-dash">${t('payouts_dashboard')}</button>` : `<button class="btn sm primary" data-act="payouts-setup">${t(po.account ? 'payouts_continue_btn' : 'payouts_setup')}</button>`}</div>
+        </div>` : '';
       comp = `<section class="panel stack">
-        <div class="row between"><h2 style="margin:0">${t('companion_title')}</h2><span class="chip ${chip}">${t('cs_' + c.status)}</span></div>
+        <div class="row between"><h2 style="margin:0">${t('companion_title')}</h2><span class="chip ${needsPayouts && c.status === 'approved' ? 'warn' : chip}">${t(needsPayouts && c.status === 'approved' ? 'cs_needs_payouts' : 'cs_' + c.status)}</span></div>
         ${c.status === 'pending' ? `<p class="sub" style="margin:0">${t('cs_pending_sub')}</p>` : ''}
         ${c.rejectReason ? `<div class="notice">${esc(c.rejectReason)}</div>` : ''}
+        ${payouts}
         ${c.status === 'approved' ? `
-          <label class="agree" style="color:var(--fg)"><input type="checkbox" data-act="online" ${c.online ? 'checked' : ''}> ${t('go_online')}</label>
+          ${needsPayouts ? '' : `<label class="agree" style="color:var(--fg)"><input type="checkbox" data-act="online" ${c.online ? 'checked' : ''}> ${t('go_online')}</label>`}
           <div class="stats" style="grid-template-columns:repeat(2,1fr)">
             <div class="stat"><span class="sub small">${t('settled')}</span><b>${money(m.earnings.settled)}</b></div>
             <div class="stat"><span class="sub small">${t('pending_money')}</span><b>${money(m.earnings.pending)}</b></div>
-          </div><p class="sub small" style="margin:0">${t('payout_note')}</p>` : ''}
+          </div>${po && po.enabled ? '' : `<p class="sub small" style="margin:0">${t('payout_note')}</p>`}` : ''}
         <div class="row">${c.status !== 'suspended' ? `<a class="btn sm" href="#/apply">${t('edit_profile')}</a>` : ''}<a class="btn sm" href="#/c/${encodeURIComponent(c.name)}">${t('view_page')}</a></div>
       </section>`;
     }
@@ -701,6 +738,7 @@
     const comps = a.companions.map((c) => `<div class="oitem">${avatar(c.avatar, c.displayName, 'sm')}<div class="grow"><a href="#/c/${encodeURIComponent(c.name)}"><b>${esc(c.displayName)}</b></a> <span class="sub small">@${esc(c.name)} · ${t('orders_n', c.orders)}</span></div>
       <span class="chip">${t('cs_' + c.status)}</span>
       ${c.status === 'approved' ? `<button class="btn sm danger" data-act="adm-c" data-name="${esc(c.name)}" data-v="suspend" data-ask="1">${t('suspend')}</button>` : `<button class="btn sm" data-act="adm-c" data-name="${esc(c.name)}" data-v="restore">${t('restore')}</button>`}</div>`).join('');
+    const issues = (a.paymentIssues || []).map((x) => `<div class="oitem"><div class="grow"><a class="link" href="#/o/${x.id}">#${x.id}</a> <span class="small">${esc(x.buyer)} → ${esc(x.companion)} · ${money(x.total)} · ${esc(x.payment)} · ×${x.attempts}</span><div class="sub small">${esc(x.error)}</div></div></div>`).join('');
     const sec = (title, n, html) => `<section class="stack"><h2>${title} (${n})</h2>${html || `<p class="sub">${t('nothing')}</p>`}</section>`;
     return shell('me', `<h1>${t('admin')}</h1>
       <div class="stats">
@@ -711,6 +749,7 @@
       </div>
       <div class="stack" style="margin-top:20px">
         ${sec(t('admin_pending'), a.pending.length, pend)}
+        ${issues ? sec(t('admin_payments'), a.paymentIssues.length, `<div class="olist">${issues}</div>`) : ''}
         ${sec(t('admin_disputes'), a.disputes.length, disputes)}
         ${sec(t('admin_reports'), a.reports.length, reports)}
         ${sec(t('admin_companions'), a.companions.length, `<div class="olist">${comps}</div>`)}
@@ -810,6 +849,16 @@
         } catch (e) { toast(e.message); }
       });
     }
+    if (act === 'pay' || act === 'payouts-setup' || act === 'payouts-dash') {
+      const path = act === 'pay' ? `/api/orders/${p.o.id}/checkout` : act === 'payouts-setup' ? '/api/companion/payouts/onboard' : '/api/companion/payouts/dashboard';
+      return busy(el, async () => {
+        try {
+          const r = await api(path, { method: 'POST' });
+          toast(t('redirecting'));
+          if (act === 'payouts-dash') window.open(r.url, '_blank', 'noopener'); else window.location.href = r.url;
+        } catch (e) { toast(e.message); }
+      });
+    }
     if (act === 'logout') {
       try { await api('/api/auth/logout', { method: 'POST' }); } catch (e) { /* ignore */ }
       setToken('');
@@ -882,6 +931,7 @@
           const p = state.page;
           const o = await api('/api/orders', { method: 'POST', body: { companion: p.c.name, game: p.game, hours: p.hours, note: p.note } });
           await loadMe();
+          if (o.checkoutUrl) { toast(t('redirecting')); window.location.href = o.checkoutUrl; return; }
           return go('#/o/' + o.id);
         }
         if (kind === 'msg') {

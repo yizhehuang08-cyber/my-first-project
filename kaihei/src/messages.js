@@ -45,6 +45,9 @@ const M = {
   bad_photo: ['照片需要是 JPG、PNG 或 WebP', 'Photos must be JPG, PNG or WebP'],
   photo_big: ['照片需要小于 2 MB', 'Photo must be under 2 MB'],
   not_found: ['找不到', 'Not found'],
+  stripe_error: ['支付服务暂时出错，请稍后再试', 'Payment service error. Please try again'],
+  payments_off: ['平台还没有开通在线支付', 'Online payments are not enabled yet'],
+  payouts_needed_self: ['请先设置收款账户', 'Set up your payout account first'],
   server_error: ['服务器出错了，请稍后再试', 'Something went wrong on the server'],
   bad_request: ['请求格式不对', 'Bad request']
 };

@@ -13,13 +13,19 @@ async function main() {
 
   const admins = String(process.env.ADMIN_USERS || '').split(',').map((s) => s.trim()).filter(Boolean);
   const feeRate = process.env.FEE_RATE ? Number(process.env.FEE_RATE) : undefined;
-  const app = createApp({ store, admins, feeRate });
+  const stripe = { secretKey: process.env.STRIPE_SECRET_KEY, webhookSecret: process.env.STRIPE_WEBHOOK_SECRET };
+  const app = createApp({ store, admins, feeRate, stripe, publicUrl: process.env.PUBLIC_URL });
   app.set('trust proxy', 1);
 
   const port = Number(process.env.PORT) || 3001;
   const server = app.listen(port, () => {
     console.log(`KaiHei 已启动：http://localhost:${port}（数据存在${process.env.DATABASE_URL ? '数据库' : '本地文件'}里）`);
     if (!admins.length) console.log('（还没设置 ADMIN_USERS，没有人能进后台审核陪玩师）');
+    if (!stripe.secretKey) console.log('（还没设置 STRIPE_SECRET_KEY，使用"测试支付"，不会扣真钱）');
+    else {
+      console.log(`Stripe 已开启（${stripe.secretKey.startsWith('sk_live_') ? '正式模式，会扣真钱' : '测试模式'}）`);
+      if (!stripe.webhookSecret) console.log('（还没设置 STRIPE_WEBHOOK_SECRET，付款成功后订单不会自动更新）');
+    }
   });
 
   const shutdown = async () => {

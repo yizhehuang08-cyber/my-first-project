@@ -36,3 +36,9 @@ services:
       # 后台管理员的用户名，多个用逗号隔开，比如：ryanh,boss
       - key: ADMIN_USERS
         value: ryanh
+      # Stripe（不填就用"测试支付"）。在 Stripe 后台 Developers → API keys 复制，只填在 Render 里，不要写进代码
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      # Stripe Webhook 的签名密钥（whsec_ 开头），两个的话用逗号隔开
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
