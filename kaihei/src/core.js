@@ -67,6 +67,13 @@ function upgrade(db) {
   db.orders = db.orders || [];
   db.reports = db.reports || [];
   db.lastId = db.lastId || 0;
+  // 旧版每款游戏只有一个段位（rank），新版可以多选（ranks）
+  for (const c of Object.values(db.companions)) {
+    for (const g of Object.values(c.games || {})) {
+      if (!g.ranks) g.ranks = g.rank ? [g.rank] : [];
+      delete g.rank;
+    }
+  }
   return db;
 }
 
@@ -225,12 +232,15 @@ function createCore(opts) {
     const games = {};
     for (const [key, g] of Object.entries(b.games || {})) {
       if (!GAMES[key] || !g) continue;
-      if (!GAMES[key].ranks.includes(g.rank)) fail(400, 'bad_rank', { game: GAMES[key].name });
+      // 可陪段位可以多选，按游戏里的段位顺序保存
+      const picked = Array.isArray(g.ranks) ? g.ranks : [];
+      const ranks = GAMES[key].ranks.filter((r) => picked.includes(r));
+      if (!ranks.length || ranks.length !== new Set(picked).size) fail(400, 'bad_rank', { game: GAMES[key].name });
       const price = Math.round(Number(g.price));
       if (!Number.isFinite(price) || price < MIN_PRICE || price > MAX_PRICE) {
         fail(400, 'bad_price', { min: MIN_PRICE / 100, max: MAX_PRICE / 100 });
       }
-      games[key] = { rank: g.rank, price };
+      games[key] = { ranks, price };
     }
     if (!Object.keys(games).length) fail(400, 'need_game');
 
@@ -477,12 +487,15 @@ function createCore(opts) {
       const game = q.get('game');
       const lang = q.get('lang');
       const style = q.get('style');
+      const rank = q.get('rank');
       const max = Number(q.get('max')) || 0;
       const onlineOnly = q.get('online') === '1';
       let list = Object.values(db.companions).filter((c) => c.status === 'approved');
       if (game && GAMES[game]) list = list.filter((c) => c.games[game]);
       if (lang && LANGS.includes(lang)) list = list.filter((c) => c.languages.includes(lang));
       if (style && STYLES.includes(style)) list = list.filter((c) => c.styles.includes(style));
+      // 按段位筛选（需要先选游戏）：只显示能陪这个段位的陪玩师
+      if (rank && game && GAMES[game]) list = list.filter((c) => c.games[game].ranks.includes(rank));
       const priceOf = (c) => (game && c.games[game] ? c.games[game].price : minPrice(c));
       if (max) list = list.filter((c) => priceOf(c) <= max);
       let views = list.map((c) => publicCompanion(c));
