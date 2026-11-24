@@ -45,12 +45,34 @@
     return db;
   }
 
+  // 删除早期版本放进去的示例帖子（只做一次）。
+  // 只删名单上"作者 + 标题"都对得上的帖子，以及没有任何登录方式的示例作者占位账号；
+  // 真实用户和他们自己发的帖子都不动。返回 true 表示有改动需要保存。
+  function removeSamples(db, samples) {
+    if (db.samplesRemoved) return false;
+    db.samplesRemoved = true;
+    if (!samples) return true;
+    const isSample = new Set((samples.notes || []).map(([author, title]) => author + '\n' + title));
+    const removed = new Set();
+    db.notes = db.notes.filter((n) => {
+      if (isSample.has(n.author + '\n' + n.title)) { removed.add(n.id); return false; }
+      return true;
+    });
+    for (const name of samples.authors || []) {
+      const u = db.users[name];
+      if (u && !u.pass && !u.email && !u.phone && !u.google) delete db.users[name];
+    }
+    for (const u of Object.values(db.users)) u.saved = u.saved.filter((id) => !removed.has(id));
+    return true;
+  }
+
   function createCore(opts) {
     const { save, hashPassword, verifyPassword, randomToken } = opts;
     const savePhoto = opts.savePhoto || ((p) => p);
     const now = opts.now || (() => Date.now());
     const googleEnabled = !!opts.googleEnabled;
     const db = upgrade(opts.db);
+    if (removeSamples(db, opts.samples)) save();
     const fails = new Map(); // 登录失败计数（只在内存里）
 
     const iso = () => new Date(now()).toISOString();

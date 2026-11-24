@@ -48,7 +48,7 @@ GOOGLE_CLIENT_ID=xxx GOOGLE_CLIENT_SECRET=yyy npm start
 
 没配置时，Google 按钮会提示"还没开通"，邮箱和手机号登录不受影响。
 
-数据保存在 `data/db.json`，照片在 `data/uploads/`（可以用环境变量 `DATA_DIR` 换位置，`PORT` 换端口）。第一次启动会放入设计稿里的 7 条示例帖子。
+数据保存在 `data/db.json`，照片在 `data/uploads/`（可以用环境变量 `DATA_DIR` 换位置，`PORT` 换端口）。新数据库是空的，没有示例帖子（旧版本放进去的示例帖子会在启动时自动清理一次）。
 
 ## 结构
 

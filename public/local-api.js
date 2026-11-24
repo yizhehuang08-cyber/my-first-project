@@ -35,7 +35,8 @@
       hashPassword,
       verifyPassword,
       randomToken: () => hex(crypto.getRandomValues(new Uint8Array(32))),
-      googleEnabled: false
+      googleEnabled: false,
+      samples: { notes: window.TROVE_SEED.SAMPLE_NOTES, authors: window.TROVE_SEED.SAMPLE_AUTHORS }
     });
   }
   boot(load());

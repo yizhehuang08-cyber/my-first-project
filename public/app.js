@@ -228,12 +228,12 @@
         <button type="button" data-method="phone" aria-pressed="${!isEmail}">Phone</button>
       </div>
       <label class="field">Username
-        <span class="at"><span aria-hidden="true">@</span><input data-af="username" value="${esc(f.username)}" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="ryan.h" required></span>
+        <span class="at"><span aria-hidden="true">@</span><input data-af="username" value="${esc(f.username)}" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="your.name" required></span>
         <span class="hint">2–20 characters: lowercase letters, numbers, . or _</span>
       </label>
       ${isEmail
-        ? `<label class="field">Email<input type="email" data-af="email" value="${esc(f.email)}" autocomplete="email" autocapitalize="none" placeholder="you@illinois.edu" required></label>`
-        : `<label class="field">Phone number<input type="tel" data-af="phone" value="${esc(f.phone)}" autocomplete="tel" placeholder="+1 217 555 0123" required></label>`}
+        ? `<label class="field">Email<input type="email" data-af="email" value="${esc(f.email)}" autocomplete="email" autocapitalize="none" placeholder="e.g. you@illinois.edu" required></label>`
+        : `<label class="field">Phone number<input type="tel" data-af="phone" value="${esc(f.phone)}" autocomplete="tel" placeholder="e.g. +1 217 555 0123" required></label>`}
       ${passwordField('password', 'Password', 'new-password', f.password)}
       <span class="hint" style="margin-top:-14px">At least 8 characters</span>
       ${state.authError ? errBox(state.authError) : ''}
@@ -293,13 +293,13 @@
       </div>
       ${state.notes.length
         ? `<div class="feed"><div class="col">${left.map((n, i) => card(n, i * 2)).join('')}</div><div class="col">${right.map((n, i) => card(n, i * 2 + 1)).join('')}</div></div>`
-        : `<div class="empty">Nothing here yet. Tap + to post the first note.</div>`}
+        : `<div class="empty">${state.filter === 'all' ? 'No notes yet. Tap + to post the first one, and invite friends to join.' : 'No notes with this verdict yet.'}</div>`}
     </main>`;
   }
 
   // ---------- 搜索 ----------
   function resultRows() {
-    if (!state.notes.length) return `<div class="empty">No verdicts yet. Be the first to post one.</div>`;
+    if (!state.notes.length) return `<div class="empty">${state.query.trim() ? 'Nothing matches yet. Try another word, or post the first note about it.' : 'No notes yet. Tap + to post the first one.'}</div>`;
     return state.notes.map((n) => {
       const m = n.worth !== null ? `${verdictLabel(n)} · ${n.pct}% agree` : `Shared${n.place ? ' · ' + esc(n.place) : ''}`;
       return `<button class="row" data-open="${n.id}">
@@ -310,13 +310,13 @@
   }
 
   function viewSearch() {
-    const chips = { Dorm: 'Allen', Food: 'ramen', Travel: 'carry', Winter: 'Quad', Shopping: 'mall' };
+    const chips = { Dorm: 'dorm', Food: 'food', Travel: 'travel', Winter: 'winter', Shopping: 'shop' };
     return `<main class="screen">
       <label class="search">${icon.search(18)}
         <input type="search" data-input="query" value="${esc(state.query)}" aria-label="Search notes" placeholder="Is it worth it?">
       </label>
       <div class="chips">${Object.entries(chips).map(([l, q]) => `<button data-chip="${esc(q)}">${l}</button>`).join('')}</div>
-      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Popular on campus'}</div>
+      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Latest'}</div>
       <div data-results>${resultRows()}</div>
     </main>`;
   }
@@ -459,7 +459,7 @@
       <p class="sub" style="font-size:13px;line-height:1.5;margin:12px 0 28px">You can log in with your email, phone number or username, plus your password${a.google ? ', or with Google' : ''}.</p>
       <button class="btn-big danger-outline" data-logout>Log out</button>
       ${window.TROVE_LOCAL_RESET ? `<button class="btn-big ghost" data-reset style="margin-top:10px">Reset demo</button>
-        <p class="sub" style="font-size:13px;margin-top:12px">Demo version: sample notes, and everything you post stays on this device only.</p>` : ''}
+        <p class="sub" style="font-size:13px;margin-top:12px">Demo version: everything you post stays on this device only.</p>` : ''}
     </main>`;
   }
 
@@ -747,7 +747,7 @@
           const box = $app.querySelector('[data-results]');
           const lbl = $app.querySelector('[data-results-label]');
           if (box) box.innerHTML = resultRows();
-          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Popular on campus';
+          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Latest';
         } catch (err) { toast(err.message); }
       }, 200);
     }
@@ -862,7 +862,8 @@
       if (state.busy) return;
       let body;
       if (kind === 'signup') {
-        const username = f.username.trim().toLowerCase();
+        const username = f.username.trim().toLowerCase().replace(/^@/, '');
+        if (!username) { state.authError = 'Choose a username'; return renderKeepFocus(); }
         if (!/^[a-z0-9._]{2,20}$/.test(username)) { state.authError = 'Username: 2–20 characters, lowercase letters, numbers, . or _'; return renderKeepFocus(); }
         if (state.authMethod === 'email' && !f.email.trim()) { state.authError = 'Enter your email'; return renderKeepFocus(); }
         if (state.authMethod === 'phone' && !f.phone.trim()) { state.authError = 'Enter your phone number'; return renderKeepFocus(); }

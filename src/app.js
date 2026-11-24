@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const { FileStore } = require('./store');
 const { createCore, HttpError } = require('./core');
+const seed = require('./seed');
 
 const scrypt = promisify(crypto.scrypt);
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -53,7 +54,8 @@ function createApp({ store, dataFile, uploadDir, google, fetchImpl = fetch } = {
     verifyPassword,
     randomToken: () => crypto.randomBytes(32).toString('hex'),
     savePhoto,
-    googleEnabled: googleOn
+    googleEnabled: googleOn,
+    samples: { notes: seed.SAMPLE_NOTES, authors: seed.SAMPLE_AUTHORS } // 旧数据里的示例帖子会被清理
   });
 
   const app = express();
