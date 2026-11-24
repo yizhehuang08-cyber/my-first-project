@@ -7,6 +7,7 @@ const { promisify } = require('util');
 const { FileStore } = require('./store');
 const { createCore, HttpError } = require('./core');
 const { msg } = require('./messages');
+const { createStripe, verifyWebhook } = require('./stripe');
 
 const scrypt = promisify(crypto.scrypt);
 const MAX_PHOTO_BYTES = 2 * 1024 * 1024;
@@ -32,8 +33,11 @@ async function verifyPassword(password, stored) {
  * @param {string[]} [o.admins] 管理员用户名（环境变量 ADMIN_USERS）
  * @param {number} [o.feeRate] 平台抽成，默认 0.15
  * @param {() => number} [o.now] 测试时可以换成假的时钟
+ * @param {object} [o.stripe] Stripe 设置 { secretKey, webhookSecret }；不填就用"测试支付"
+ * @param {object} [o.stripeClient] 测试时可以换成假的 Stripe
+ * @param {string} [o.publicUrl] 网站地址（Stripe 付款后跳回来用），不填就按请求自动判断
  */
-function createApp({ store, admins = [], feeRate, now } = {}) {
+function createApp({ store, admins = [], feeRate, now, stripe, stripeClient, publicUrl } = {}) {
   store = store || new FileStore(null, null);
 
   function savePhoto(dataUrl) {
@@ -53,11 +57,33 @@ function createApp({ store, admins = [], feeRate, now } = {}) {
     savePhoto,
     admins,
     feeRate,
-    now
+    now,
+    stripe: stripeClient || (stripe && stripe.secretKey ? createStripe({ secretKey: stripe.secretKey }) : null)
   });
+  // 可以填多个（逗号隔开）：平台账户事件和陪玩师账户（Connected accounts）事件各有一个签名密钥
+  const webhookSecrets = String((stripe && stripe.webhookSecret) || '').split(',').map((x) => x.trim()).filter(Boolean);
 
   const app = express();
   app.disable('x-powered-by');
+
+  // Stripe Webhook：要用原始请求内容验证签名，所以放在 express.json() 前面
+  app.post('/api/stripe/webhook', express.raw({ type: '*/*', limit: '1mb' }), async (req, res) => {
+    if (!webhookSecrets.length) return res.status(400).json({ error: 'Webhook secret is not set' });
+    const raw = Buffer.isBuffer(req.body) ? req.body.toString('utf8') : '';
+    const t = now ? now() : Date.now();
+    let event = null;
+    for (const sec of webhookSecrets) if (!event) event = verifyWebhook(raw, req.get('Stripe-Signature'), sec, t);
+    if (!event) return res.status(400).json({ error: 'Bad signature' });
+    try {
+      await core.stripeEvent(event);
+      await store.flush();
+      res.json({ received: true });
+    } catch (e) {
+      console.error('Stripe webhook failed:', e.message);
+      res.status(500).json({ error: 'Webhook handling failed' }); // Stripe 会自动重发
+    }
+  });
+
   app.use(express.json({ limit: '4mb' }));
   if (store.uploadDir) app.use('/uploads', express.static(store.uploadDir, { maxAge: '7d' }));
   if (store.getPhoto) {
@@ -72,6 +98,9 @@ function createApp({ store, admins = [], feeRate, now } = {}) {
     });
   }
   app.get('/healthz', (req, res) => res.json({ ok: true }));
+  // 从 Stripe 付款页 / 收款设置页跳回来
+  app.get('/go/o/:id', (req, res) => res.redirect('/#/o/' + encodeURIComponent(req.params.id)));
+  app.get('/go/me', (req, res) => res.redirect('/#/me'));
   app.use(express.static(path.join(__dirname, '..', 'public')));
 
   const langOf = (req) => (String(req.get('X-Lang') || '').startsWith('zh') ? 'zh' : 'en');
@@ -82,7 +111,8 @@ function createApp({ store, admins = [], feeRate, now } = {}) {
 
   app.all('/api/*', async (req, res) => {
     try {
-      const r = await core.handle(req.method, req.originalUrl, { token: tokenOf(req), body: req.body });
+      const origin = publicUrl || `${req.protocol}://${req.get('host')}`;
+      const r = await core.handle(req.method, req.originalUrl, { token: tokenOf(req), body: req.body, origin });
       await store.flush(); // 确认数据已经存好再回应
       res.status(r.status).json(r.data);
     } catch (e) {
