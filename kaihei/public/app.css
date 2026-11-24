@@ -105,8 +105,9 @@ input[type=date].i { color-scheme: dark; }
 .card-name { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 6px; }
 .card-line { font-size: 13px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .card-games { display: flex; flex-direction: column; gap: 4px; font-size: 13px; }
-.card-games div { display: flex; justify-content: space-between; color: var(--sub); }
-.card-games b { color: var(--fg); font-weight: 600; }
+.card-games div { display: flex; justify-content: space-between; gap: 10px; color: var(--sub); }
+.card-games span { min-width: 0; }
+.card-games b { color: var(--fg); font-weight: 600; flex-shrink: 0; }
 .card-foot { display: flex; justify-content: space-between; align-items: center; margin-top: auto; padding-top: 4px; }
 .price { font-weight: 800; font-size: 17px; }
 .price small { font-weight: 600; font-size: 12px; color: var(--sub); }

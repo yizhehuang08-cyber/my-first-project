@@ -156,7 +156,8 @@
     avatar: ['头像', 'Photo'],
     pick_photo: ['选择照片', 'Choose photo'],
     offer_game: ['我陪 %s', 'I offer %s'],
-    rank: ['段位', 'Rank'],
+    rank: ['可陪段位（可多选）', 'Ranks you can play (pick any)'],
+    any_rank: ['任何段位', 'Any rank'],
     price_hr: ['价格（美元 / 小时）', 'Price (USD / hour)'],
     languages: ['语言', 'Languages'],
     styles: ['陪玩类型', 'Play style'],
@@ -219,7 +220,7 @@
     token: storage.get('kaihei.token') || '',
     me: null, // /api/me
     config: null,
-    filters: { game: '', lang: '', style: '', max: '', online: false, sort: 'recommended' },
+    filters: { game: '', rank: '', lang: '', style: '', max: '', online: false, sort: 'recommended' },
     page: null // 当前页面的数据
   };
 
@@ -243,6 +244,20 @@
   const when = (iso) => new Date(iso).toLocaleString(state.lang === 'zh' ? 'zh-CN' : 'en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
   const stars = (r) => (r ? `<span class="stars">★ ${r.toFixed(1)}</span>` : `<span class="chip">${t('new_badge')}</span>`);
   const loggedIn = () => !!state.me;
+  // 可陪段位：连续 3 个以上合并成 "Gold ~ Immortal"，其余用 / 隔开
+  function rankText(game, ranks) {
+    const all = state.config.games[game] ? state.config.games[game].ranks : [];
+    const idx = (ranks || []).map((r) => all.indexOf(r)).filter((i) => i >= 0).sort((a, b) => a - b);
+    const out = [];
+    for (let i = 0; i < idx.length;) {
+      let j = i;
+      while (j + 1 < idx.length && idx[j + 1] === idx[j] + 1) j++;
+      if (j - i >= 2) out.push(all[idx[i]] + ' ~ ' + all[idx[j]]);
+      else for (let k = i; k <= j; k++) out.push(all[idx[k]]);
+      i = j + 1;
+    }
+    return out.join(' / ');
+  }
   const pct = () => Math.round((state.config ? state.config.feeRate : 0.15) * 100);
 
   let toastTimer;
@@ -313,16 +328,16 @@
   async function pageHome() {
     const f = state.filters;
     const q = new URLSearchParams();
-    for (const k of ['game', 'lang', 'style', 'max', 'sort']) if (f[k]) q.set(k, f[k]);
+    for (const k of ['game', 'rank', 'lang', 'style', 'max', 'sort']) if (f[k]) q.set(k, f[k]);
     if (f.online) q.set('online', '1');
     const list = await api('/api/companions?' + q);
     const games = state.config.games;
-    const opt = (v, label, cur) => `<option value="${v}" ${String(cur) === String(v) ? 'selected' : ''}>${label}</option>`;
+    const opt = (v, label, cur) => `<option value="${esc(v)}" ${String(cur) === String(v) ? 'selected' : ''}>${esc(label)}</option>`;
 
     const card = (c) => {
       const gameRows = Object.entries(c.games)
         .filter(([g]) => !f.game || g === f.game)
-        .map(([g, x]) => `<div><span>${esc(gameName(g))} · ${esc(x.rank)}</span><b>${money(x.price)}</b></div>`).join('');
+        .map(([g, x]) => `<div><span>${esc(gameName(g))} · ${esc(rankText(g, x.ranks))}</span><b>${money(x.price)}</b></div>`).join('');
       const shown = f.game && c.games[f.game] ? c.games[f.game].price : c.fromPrice;
       return `<a class="card" href="#/c/${encodeURIComponent(c.name)}">
         <div class="card-head">${avatar(c.avatar, c.displayName)}
@@ -345,6 +360,7 @@
         ${Object.entries(games).map(([k, g]) => `<button data-act="game" data-v="${k}" aria-pressed="${f.game === k}">${esc(g.name)}</button>`).join('')}
       </div>
       <div class="filters">
+        ${f.game ? `<select data-filter="rank">${opt('', t('any_rank'), f.rank)}${games[f.game].ranks.map((r) => opt(r, r, f.rank)).join('')}</select>` : ''}
         <select data-filter="lang">${opt('', t('any_lang'), f.lang)}${state.config.languages.map((l) => opt(l, t('lang_' + l), f.lang)).join('')}</select>
         <select data-filter="style">${opt('', t('any_style'), f.style)}${state.config.styles.map((s) => opt(s, t('style_' + s), f.style)).join('')}</select>
         <select data-filter="max">${opt('', t('any_price'), f.max)}${[1000, 1500, 2000, 3000].map((c) => opt(c, t('under', c / 100), f.max)).join('')}</select>
@@ -402,7 +418,7 @@
             </div>
           </section>
           <section class="panel"><h2>${t('games_prices')}</h2>
-            <table class="games-table">${Object.entries(c.games).map(([g, x]) => `<tr><td><b>${esc(gameName(g))}</b> <span class="sub">· ${esc(x.rank)}</span></td><td>${money(x.price)}${t('per_hour')}</td></tr>`).join('')}</table>
+            <table class="games-table">${Object.entries(c.games).map(([g, x]) => `<tr><td><b>${esc(gameName(g))}</b> <span class="sub">· ${esc(rankText(g, x.ranks))}</span></td><td>${money(x.price)}${t('per_hour')}</td></tr>`).join('')}</table>
           </section>
           ${c.bio ? `<section class="panel"><h2>${t('about')}</h2><div class="bio">${esc(c.bio)}</div></section>` : ''}
           <section class="panel"><h2>${t('reviews')}</h2>
@@ -616,8 +632,9 @@
       const cur = (c.games || {})[key];
       return `<fieldset class="panel stack" style="border-color:var(--line);margin:0">
         <label class="agree" style="color:var(--fg);font-weight:700"><input type="checkbox" name="offer_${key}" ${cur || !c.name ? 'checked' : ''}> ${t('offer_game', esc(g.name))}</label>
+        <div class="f"><span class="sub small" style="display:block;font-weight:600;margin-bottom:6px">${t('rank')}</span>
+          <div class="checks">${g.ranks.map((r) => box('rank_' + key, r, esc(r), cur && cur.ranks.includes(r))).join('')}</div></div>
         <div class="row" style="align-items:flex-start">
-          <label class="f" style="flex:1;min-width:160px"><span>${t('rank')}</span><select class="i" name="rank_${key}"><option value="">${t('pick')}</option>${g.ranks.map((r) => `<option ${cur && cur.rank === r ? 'selected' : ''}>${esc(r)}</option>`).join('')}</select></label>
           <label class="f" style="width:150px"><span>${t('price_hr')}</span><input class="i" name="price_${key}" type="number" min="${cfg.minPrice / 100}" max="${cfg.maxPrice / 100}" step="0.5" value="${cur ? cur.price / 100 : ''}" placeholder="12"></label>
         </div></fieldset>`;
     };
@@ -670,7 +687,7 @@
     const pend = a.pending.map((c) => `<div class="panel stack">
       <div class="row">${avatar(c.avatar, c.displayName, 'sm')}<b>${esc(c.displayName)}</b><span class="sub small">@${esc(c.name)} · Discord: ${esc(c.discord)}</span></div>
       <div class="sub small">${esc(c.headline || '')}</div>
-      <div class="small">${Object.entries(c.games).map(([g, x]) => `${esc(gameName(g))} ${esc(x.rank)} ${money(x.price)}${t('per_hour')}`).join(' · ')}</div>
+      <div class="small">${Object.entries(c.games).map(([g, x]) => `${esc(gameName(g))} ${esc(rankText(g, x.ranks))} ${money(x.price)}${t('per_hour')}`).join(' · ')}</div>
       ${c.bio ? `<div class="bio small">${esc(c.bio)}</div>` : ''}
       <div class="row"><button class="btn sm ok" data-act="adm-c" data-name="${esc(c.name)}" data-v="approve">${t('approve')}</button><button class="btn sm danger" data-act="adm-c" data-name="${esc(c.name)}" data-v="reject" data-ask="1">${t('reject')}</button></div></div>`).join('');
     const disputes = a.disputes.map((o) => `<div class="panel stack">
@@ -764,7 +781,7 @@
       document.documentElement.lang = state.lang;
       return route();
     }
-    if (act === 'game') { state.filters.game = el.dataset.v; return route(); }
+    if (act === 'game') { state.filters.game = el.dataset.v; state.filters.rank = ''; return route(); }
     if (act === 'hours') {
       p.hours = Math.max(1, Math.min(state.config.maxHours, p.hours + Number(el.dataset.v)));
       return paint(renderCompanion(p));
@@ -906,7 +923,7 @@
           const games = {};
           for (const key of Object.keys(state.config.games)) {
             if (!fd.get('offer_' + key)) continue;
-            games[key] = { rank: fd.get('rank_' + key), price: Math.round(Number(fd.get('price_' + key)) * 100) };
+            games[key] = { ranks: fd.getAll('rank_' + key), price: Math.round(Number(fd.get('price_' + key)) * 100) };
           }
           const body = {
             displayName: d.displayName, headline: d.headline, bio: d.bio, region: d.region, discord: d.discord,

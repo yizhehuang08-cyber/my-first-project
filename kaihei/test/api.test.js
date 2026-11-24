@@ -43,7 +43,7 @@ const PROFILE = {
   displayName: '小鹿',
   headline: 'Immortal 陪你上分',
   bio: '晚上 8 点后常在线',
-  games: { valorant: { rank: 'Immortal', price: 1500 }, cs2: { rank: 'FACEIT 8–10', price: 1200 } },
+  games: { valorant: { ranks: ['Immortal', 'Gold', 'Platinum', 'Diamond'], price: 1500 }, cs2: { ranks: ['FACEIT 8–10'], price: 1200 } },
   languages: ['zh', 'en'],
   styles: ['skilled', 'chill'],
   region: 'na-west',
@@ -86,13 +86,19 @@ test('login with username or email; password is not stored in plain text', async
 });
 
 test('companion applies, is hidden until approved by an admin', async () => {
-  let r = await call('PUT', '/api/companion', { token: deer, body: { ...PROFILE, games: { valorant: { rank: 'Immortal', price: 100 } } } });
+  let r = await call('PUT', '/api/companion', { token: deer, body: { ...PROFILE, games: { valorant: { ranks: ['Immortal'], price: 100 } } } });
   assert.strictEqual(r.data.code, 'bad_price');
   r = await call('PUT', '/api/companion', { token: deer, body: { ...PROFILE, discord: '' } });
   assert.strictEqual(r.data.code, 'need_discord');
 
+  r = await call('PUT', '/api/companion', { token: deer, body: { ...PROFILE, games: { valorant: { ranks: [], price: 1500 } } } });
+  assert.strictEqual(r.data.code, 'bad_rank', '至少选一个段位');
+  r = await call('PUT', '/api/companion', { token: deer, body: { ...PROFILE, games: { valorant: { ranks: ['Gold', 'Legend'], price: 1500 } } } });
+  assert.strictEqual(r.data.code, 'bad_rank', '不存在的段位');
+
   r = await call('PUT', '/api/companion', { token: deer, body: PROFILE });
   assert.strictEqual(r.status, 200);
+  assert.deepStrictEqual(r.data.games.valorant.ranks, ['Gold', 'Platinum', 'Diamond', 'Immortal'], '多个段位按顺序保存');
   assert.strictEqual(r.data.status, 'pending');
   assert.strictEqual(r.data.fromPrice, 1200);
 
@@ -120,7 +126,7 @@ test('companion applies, is hidden until approved by an admin', async () => {
 test('browse filters: game, language, price, online', async () => {
   // 再加一位只陪 CS2、只说英语的陪玩师
   const ken = await signup('ken');
-  await call('PUT', '/api/companion', { token: ken, body: { ...PROFILE, displayName: 'Ken', games: { cs2: { rank: 'Premier 20000–24999', price: 800 } }, languages: ['en'], styles: ['coach'], discord: 'kenplays' } });
+  await call('PUT', '/api/companion', { token: ken, body: { ...PROFILE, displayName: 'Ken', games: { cs2: { ranks: ['Premier 20000–24999', 'Premier 25000+'], price: 800 } }, languages: ['en'], styles: ['coach'], discord: 'kenplays' } });
   await call('POST', '/api/admin/companions/ken', { token: boss, body: { action: 'approve' } });
 
   const names = async (q) => (await call('GET', '/api/companions?' + q)).data.map((c) => c.name);
@@ -129,6 +135,9 @@ test('browse filters: game, language, price, online', async () => {
   assert.deepStrictEqual(await names('lang=zh'), ['deer']);
   assert.deepStrictEqual(await names('style=coach'), ['ken']);
   assert.deepStrictEqual(await names('game=cs2&max=1000'), ['ken']);
+  assert.deepStrictEqual(await names('game=cs2&rank=' + encodeURIComponent('Premier 25000+')), ['ken'], '按段位筛选');
+  assert.deepStrictEqual(await names('game=valorant&rank=Gold'), ['deer']);
+  assert.deepStrictEqual(await names('game=valorant&rank=Iron'), []);
   assert.deepStrictEqual(await names('online=1'), []);
 
   let r = await call('POST', '/api/companion/online', { token: ken, body: { online: true } });
@@ -286,4 +295,11 @@ test('order lists by role; config lists games', async () => {
   assert.deepStrictEqual(Object.keys(r.data.games), ['valorant', 'cs2']);
   r = await call('GET', '/api/me');
   assert.strictEqual(r.status, 401);
+});
+
+test('old single-rank profiles are upgraded to a list', () => {
+  const { createCore } = require('../src/core');
+  const db = { companions: { old: { name: 'old', games: { valorant: { rank: 'Gold', price: 1000 } } } } };
+  createCore({ db, save() {}, hashPassword: async () => '', verifyPassword: async () => false, randomToken: () => 't' });
+  assert.deepStrictEqual(db.companions.old.games.valorant, { ranks: ['Gold'], price: 1000 });
 });

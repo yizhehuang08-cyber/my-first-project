@@ -19,7 +19,7 @@ const M = {
   banned: ['这个账号已被封禁', 'This account has been banned'],
   companion_suspended: ['你的陪玩资格已被暂停，请联系客服', 'Your companion profile is suspended. Contact support'],
   need_display_name: ['请填写昵称', 'Add a display name'],
-  bad_rank: ['请选择 {game} 段位', 'Pick your {game} rank'],
+  bad_rank: ['请选择 {game} 可陪段位（可多选）', 'Pick the {game} ranks you can play (one or more)'],
   bad_price: ['价格需要在每小时 ${min}–${max} 之间', 'Price must be ${min}–${max} per hour'],
   need_game: ['至少选择一款游戏', 'Pick at least one game'],
   need_language: ['至少选择一种语言', 'Pick at least one language'],
