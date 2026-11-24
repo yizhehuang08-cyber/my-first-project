@@ -95,7 +95,6 @@ test('sign up with phone', async () => {
 
 test('sign up rejects bad or taken details', async () => {
   assert.strictEqual((await signup({ username: 'amy', email: 'x@y.com', password: '12345678' })).status, 409);
-  assert.strictEqual((await signup({ username: 'maya.c', email: 'x@y.com', password: '12345678' })).status, 409, 'seed author names are taken');
   assert.strictEqual((await signup({ username: 'cat', email: 'amy@illinois.edu', password: '12345678' })).status, 409);
   assert.strictEqual((await signup({ username: 'cat', email: 'not-an-email', password: '12345678' })).status, 400);
   assert.strictEqual((await signup({ username: 'cat', phone: '12', password: '12345678' })).status, 400);
@@ -186,13 +185,8 @@ test('linking a Google account already used by someone else is refused', async (
 });
 
 // ---------- 帖子 ----------
-test('lists seeded notes and filters by verdict', async () => {
-  const all = await call('GET', '/api/notes');
-  assert.strictEqual(all.data.length, 7);
-  const no = await call('GET', '/api/notes?filter=no');
-  assert.deepStrictEqual(no.data.map((n) => n.worth), [false]);
-  const r = await call('GET', '/api/notes?q=ramen');
-  assert.deepStrictEqual(r.data.map((n) => n.title), ['Late-night ramen on Green St']);
+test('a new database starts with no posts', async () => {
+  assert.deepStrictEqual((await call('GET', '/api/notes')).data, []);
 });
 
 test('writing needs a login', async () => {
@@ -217,28 +211,40 @@ test('post a note with a verdict and a photo', async () => {
   assert.strictEqual(bad.status, 400);
 });
 
+// 下面几个测试共用的帖子
+let skip, snow;
+test('filter by verdict and search', async () => {
+  skip = (await call('POST', '/api/notes', { token: amy, body: { title: 'Parking pass for Lot E14', worth: false, body: 'Overpriced.' } })).data;
+  snow = (await call('POST', '/api/notes', { token: amy, body: { title: 'First snow on the Quad', place: 'Main Quad' } })).data;
+  assert.deepStrictEqual((await call('GET', '/api/notes?filter=no')).data.map((n) => n.id), [skip.id]);
+  assert.ok((await call('GET', '/api/notes?filter=yes')).data.every((n) => n.worth === true));
+  assert.deepStrictEqual((await call('GET', '/api/notes?q=main%20quad')).data.map((n) => n.id), [snow.id]);
+});
+
 test('agree / disagree / undo vote', async () => {
-  const before = (await call('GET', '/api/notes/1')).data;
-  let r = await call('POST', '/api/notes/1/vote', { token: amy, body: { value: 1 } });
-  assert.strictEqual(r.data.agree, before.agree + 1);
-  r = await call('POST', '/api/notes/1/vote', { token: amy, body: { value: -1 } });
-  assert.strictEqual(r.data.disagree, before.disagree + 1);
-  r = await call('POST', '/api/notes/1/vote', { token: amy, body: { value: 0 } });
-  assert.strictEqual(r.data.agree, before.agree);
-  assert.strictEqual((await call('POST', '/api/notes/2/vote', { token: amy, body: { value: 1 } })).status, 400);
+  const ben = (await call('POST', '/api/auth/login', { body: { id: 'ben_2', password: '12345678' } })).data.token;
+  let r = await call('POST', `/api/notes/${skip.id}/vote`, { token: ben, body: { value: 1 } });
+  assert.deepStrictEqual([r.data.agree, r.data.disagree, r.data.pct], [1, 0, 100]);
+  r = await call('POST', `/api/notes/${skip.id}/vote`, { token: ben, body: { value: -1 } });
+  assert.deepStrictEqual([r.data.agree, r.data.disagree, r.data.pct], [0, 1, 0]);
+  r = await call('POST', `/api/notes/${skip.id}/vote`, { token: ben, body: { value: 0 } });
+  assert.deepStrictEqual([r.data.agree, r.data.disagree, r.data.total], [0, 0, 0]);
+  // 没有结论的分享帖不能投票
+  assert.strictEqual((await call('POST', `/api/notes/${snow.id}/vote`, { token: ben, body: { value: 1 } })).status, 400);
 });
 
 test('like, save, follow and profile', async () => {
-  let r = await call('POST', '/api/notes/2/like', { token: amy });
-  assert.strictEqual(r.data.likes, 343);
-  r = await call('POST', '/api/notes/2/save', { token: amy });
+  const ben = (await call('POST', '/api/auth/login', { body: { id: 'ben_2', password: '12345678' } })).data.token;
+  let r = await call('POST', `/api/notes/${snow.id}/like`, { token: ben });
+  assert.strictEqual(r.data.likes, 1);
+  r = await call('POST', `/api/notes/${snow.id}/save`, { token: ben });
   assert.strictEqual(r.data.saved, true);
-  const f = await call('POST', '/api/users/jt.eats/follow', { token: amy });
+  const f = await call('POST', '/api/users/amy/follow', { token: ben });
   assert.strictEqual(f.data.following, true);
-  const me = (await call('GET', '/api/me', { token: amy })).data;
-  assert.deepStrictEqual(me.saved.map((n) => n.id), [2]);
-  assert.deepStrictEqual(me.following, ['jt.eats']);
-  assert.strictEqual(me.account.username, 'amy');
+  const me = (await call('GET', '/api/me', { token: ben })).data;
+  assert.deepStrictEqual(me.saved.map((n) => n.id), [snow.id]);
+  assert.deepStrictEqual(me.following, ['amy']);
+  assert.strictEqual(me.account.username, 'ben_2');
 });
 
 // ---------- 评论和回复 ----------
@@ -262,12 +268,6 @@ test('ask a question, the author replies, someone replies to the reply', async (
 
   const bad = await call('POST', `/api/notes/${note.id}/questions`, { token: amy, body: { text: 'x', replyTo: 99999 } });
   assert.strictEqual(bad.status, 400);
-});
-
-test('seed has a sample question with an author reply', async () => {
-  const ramen = (await call('GET', '/api/notes?q=ramen')).data[0];
-  assert.strictEqual(ramen.questions.length, 2);
-  assert.strictEqual(ramen.questions[1].isAuthor, true);
 });
 
 test('data survives a restart', async () => {
@@ -321,8 +321,32 @@ test('notifications: replies to my comments and questions on my notes', async ()
   assert.strictEqual((await call('GET', '/api/notifications')).status, 401);
 });
 
-test('ryan.h gets the two sample notifications after signing up', async () => {
-  const t = (await signup({ username: 'ryan.h', email: 'ryanh@y.com', password: '12345678' })).data.token;
-  const inbox = (await call('GET', '/api/notifications', { token: t })).data;
-  assert.deepStrictEqual(inbox.items.map((n) => [n.kind, n.from]), [['question', 'amy.l'], ['reply', 'maya.c']]);
+// ---------- 清理旧的示例帖子 ----------
+test('old sample posts are removed once, real users and posts are kept', async () => {
+  const oldSeed = {
+    lastId: 20,
+    users: {
+      'maya.c': { name: 'maya.c', email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: '2026-11-20T00:00:00.000Z' },
+      'jt.eats': { name: 'jt.eats', email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: '2026-11-20T00:00:00.000Z' },
+      'ryan.h': { name: 'ryan.h', email: 'r@y.com', phone: null, pass: 'x', google: null, saved: [1, 15], following: [], createdAt: '2026-11-24T00:00:00.000Z' }
+    },
+    sessions: {},
+    notes: [
+      { id: 1, author: 'maya.c', title: 'Mattress topper for the Allen Hall beds', worth: true, questions: [] },
+      { id: 3, author: 'jt.eats', title: 'Late-night ramen on Green St', worth: true, questions: [{ id: 8, author: 'ryan.h', text: 'cash?', replyTo: null }] },
+      { id: 6, author: 'ryan.h', title: 'A carry-on that fits United', worth: true, questions: [] },
+      { id: 15, author: 'ryan.h', title: 'My real post', worth: null, questions: [] }
+    ].map((n) => ({ body: '', place: '', price: '', photos: [], tint: 0, votes: {}, likes: [], baseAgree: 0, baseDisagree: 0, baseLikes: 0, createdAt: '2026-11-24T00:00:00.000Z', ...n }))
+  };
+  const store2 = new FileStore(null);
+  store2.data = oldSeed;
+  createApp({ store: store2 });
+  assert.deepStrictEqual(store2.data.notes.map((n) => n.title), ['My real post']);
+  assert.deepStrictEqual(Object.keys(store2.data.users), ['ryan.h'], 'placeholder sample authors are gone');
+  assert.deepStrictEqual(store2.data.users['ryan.h'].saved, [15]);
+  assert.strictEqual(store2.data.samplesRemoved, true);
+  // 第二次启动不再删：就算有人后来发了同名帖子也保留
+  store2.data.notes.push({ ...store2.data.notes[0], id: 21, author: 'ryan.h', title: 'A carry-on that fits United' });
+  createApp({ store: store2 });
+  assert.strictEqual(store2.data.notes.length, 2);
 });

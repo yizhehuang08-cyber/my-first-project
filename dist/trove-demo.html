@@ -233,61 +233,27 @@ main.auth { justify-content: space-between; }
 <div id="app" class="app"></div>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script>
-window.TROVE_SEED = (function () { const module = {}; // 第一次启动时放进去的示例帖子（来自设计稿）。
-module.exports = function seed() {
-  const raw = [
-    { title: 'Mattress topper for the Allen Hall beds', author: 'maya.c', worth: true, price: '$35', place: 'Target', agree: 212, disagree: 9, likes: 0, t: 0, body: 'The dorm mattress is thin and hard. A 2-inch topper fixed it on night one. Get the twin XL size, the regular twin is too short.' },
-    { title: 'First snow on the Main Quad', author: 'sofia.p', worth: null, price: '', place: 'Main Quad', agree: 0, disagree: 0, likes: 342, t: 1, body: 'Walked out of a 9am and the whole Quad was white. Champaign winters are cold, but mornings like this make up for it.' },
-    { title: 'Late-night ramen on Green St', author: 'jt.eats', worth: true, price: '$14', place: 'Green St', agree: 148, disagree: 21, likes: 0, t: 2, body: 'Open past midnight, big portions, quick service. Go spicy miso and add an egg. Expect a short line after 10pm on weekends.' },
-    { title: 'A wool coat alone for a Champaign winter', author: 'noah.k', worth: false, price: '', place: 'Main Quad', agree: 175, disagree: 38, likes: 0, t: 3, body: 'It looks great, but the wind on the Quad goes right through it. Worth it only with a thin down layer underneath, plus gloves and a hat.' },
-    { title: 'My Allen Hall desk setup', author: 'kev.z', worth: null, price: '', place: 'Allen Hall', agree: 0, disagree: 0, likes: 188, t: 5, body: 'Small double, so everything goes vertical: a monitor arm, a shelf riser and a clip lamp. Total cost was less than one textbook.' },
-    { title: 'A carry-on that fits United', author: 'ryan.h', worth: true, price: '$129', place: 'T.J. Maxx', agree: 96, disagree: 4, likes: 0, t: 4, body: 'Check the tag for exterior size including wheels: 22 × 14 × 9 inches or less. Most 20-inch spinners pass. Anything labeled 24 inches is a checked bag.' },
-    { title: 'Sawgrass Mills on the way to FLL', author: 'ana.m', worth: true, price: '', place: 'Sunrise, FL', agree: 83, disagree: 6, likes: 0, t: 0, body: 'Huge outlet mall about 20–30 minutes from FLL. Shop with your carry-on, then take a ride straight to the airport.' }
-  ];
-  const start = Date.parse('2026-11-20T12:00:00Z');
-  const notes = raw.map((n, i) => ({
-    id: i + 1,
-    author: n.author,
-    title: n.title,
-    body: n.body,
-    worth: n.worth,
-    place: n.place,
-    price: n.price,
-    photos: [],
-    tint: n.t,
-    votes: {},
-    likes: [],
-    baseAgree: n.agree,
-    baseDisagree: n.disagree,
-    baseLikes: n.likes,
-    questions: [],
-    createdAt: new Date(start - i * 3600 * 1000).toISOString()
-  }));
-  // 示例对话：一个提问 + 作者的回复
-  const ramen = notes.find((n) => n.author === 'jt.eats');
-  ramen.questions = [
-    { id: 8, author: 'amy.l', text: 'Do they take cards or is it cash only?', replyTo: null, createdAt: '2026-11-21T02:00:00.000Z' },
-    { id: 9, author: 'jt.eats', text: 'Cards are fine. Tap to pay works too.', replyTo: 8, createdAt: '2026-11-21T02:30:00.000Z' }
-  ];
-  // 给 ryan.h 准备的示例通知：别人回复了 ryan.h 的评论，以及有人在 ryan.h 的帖子下提问
-  const topper = notes.find((n) => n.author === 'maya.c');
-  topper.questions = [
-    { id: 10, author: 'ryan.h', text: 'Does it fit under a fitted sheet, or does it slide around?', replyTo: null, createdAt: '2026-11-22T18:00:00.000Z' },
-    { id: 11, author: 'maya.c', text: 'It stays put with a deep-pocket sheet. A regular one pops off.', replyTo: 10, createdAt: '2026-11-22T19:10:00.000Z' }
-  ];
-  const carryOn = notes.find((n) => n.author === 'ryan.h');
-  carryOn.questions = [
-    { id: 12, author: 'amy.l', text: 'Did the T.J. Maxx one have a warranty?', replyTo: null, createdAt: '2026-11-23T15:20:00.000Z' }
-  ];
-  // 示例作者的用户名先占上（没有任何登录方式，别人不能冒用）。
-  // ryan.h 不占：那是你自己的示例帖子，你注册 ryan.h 就能拥有它。
-  const users = {};
-  for (const name of new Set(notes.map((n) => n.author).concat('amy.l'))) {
-    if (name === 'ryan.h') continue;
-    users[name] = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], notifSeenAt: null, createdAt: notes[0].createdAt };
-  }
-  return { lastId: 12, notes, users, sessions: {} };
-};
+window.TROVE_SEED = (function () { const module = {}; // 新数据库的初始内容：空的，没有示例帖子。
+function seed() {
+  return { lastId: 0, notes: [], users: {}, sessions: {}, samplesRemoved: true };
+}
+
+// 早期版本放过的示例帖子和示例作者（作者 + 标题）。
+// 旧数据库启动时会按这份名单把它们清理掉，见 core.js 的 removeSamples。
+const SAMPLE_NOTES = [
+  ['maya.c', 'Mattress topper for the Allen Hall beds'],
+  ['sofia.p', 'First snow on the Main Quad'],
+  ['jt.eats', 'Late-night ramen on Green St'],
+  ['noah.k', 'A wool coat alone for a Champaign winter'],
+  ['kev.z', 'My Allen Hall desk setup'],
+  ['ryan.h', 'A carry-on that fits United'],
+  ['ana.m', 'Sawgrass Mills on the way to FLL']
+];
+const SAMPLE_AUTHORS = ['maya.c', 'sofia.p', 'jt.eats', 'noah.k', 'kev.z', 'ana.m', 'amy.l'];
+
+seed.SAMPLE_NOTES = SAMPLE_NOTES;
+seed.SAMPLE_AUTHORS = SAMPLE_AUTHORS;
+module.exports = seed;
 ; return module.exports; })();
 </script>
 <script>
@@ -338,12 +304,34 @@ module.exports = function seed() {
     return db;
   }
 
+  // 删除早期版本放进去的示例帖子（只做一次）。
+  // 只删名单上"作者 + 标题"都对得上的帖子，以及没有任何登录方式的示例作者占位账号；
+  // 真实用户和他们自己发的帖子都不动。返回 true 表示有改动需要保存。
+  function removeSamples(db, samples) {
+    if (db.samplesRemoved) return false;
+    db.samplesRemoved = true;
+    if (!samples) return true;
+    const isSample = new Set((samples.notes || []).map(([author, title]) => author + '\n' + title));
+    const removed = new Set();
+    db.notes = db.notes.filter((n) => {
+      if (isSample.has(n.author + '\n' + n.title)) { removed.add(n.id); return false; }
+      return true;
+    });
+    for (const name of samples.authors || []) {
+      const u = db.users[name];
+      if (u && !u.pass && !u.email && !u.phone && !u.google) delete db.users[name];
+    }
+    for (const u of Object.values(db.users)) u.saved = u.saved.filter((id) => !removed.has(id));
+    return true;
+  }
+
   function createCore(opts) {
     const { save, hashPassword, verifyPassword, randomToken } = opts;
     const savePhoto = opts.savePhoto || ((p) => p);
     const now = opts.now || (() => Date.now());
     const googleEnabled = !!opts.googleEnabled;
     const db = upgrade(opts.db);
+    if (removeSamples(db, opts.samples)) save();
     const fails = new Map(); // 登录失败计数（只在内存里）
 
     const iso = () => new Date(now()).toISOString();
@@ -741,7 +729,8 @@ module.exports = function seed() {
       hashPassword,
       verifyPassword,
       randomToken: () => hex(crypto.getRandomValues(new Uint8Array(32))),
-      googleEnabled: false
+      googleEnabled: false,
+      samples: { notes: window.TROVE_SEED.SAMPLE_NOTES, authors: window.TROVE_SEED.SAMPLE_AUTHORS }
     });
   }
   boot(load());
@@ -1059,13 +1048,13 @@ module.exports = function seed() {
       </div>
       ${state.notes.length
         ? `<div class="feed"><div class="col">${left.map((n, i) => card(n, i * 2)).join('')}</div><div class="col">${right.map((n, i) => card(n, i * 2 + 1)).join('')}</div></div>`
-        : `<div class="empty">Nothing here yet. Tap + to post the first note.</div>`}
+        : `<div class="empty">${state.filter === 'all' ? 'No notes yet. Tap + to post the first one, and invite friends to join.' : 'No notes with this verdict yet.'}</div>`}
     </main>`;
   }
 
   // ---------- 搜索 ----------
   function resultRows() {
-    if (!state.notes.length) return `<div class="empty">No verdicts yet. Be the first to post one.</div>`;
+    if (!state.notes.length) return `<div class="empty">${state.query.trim() ? 'Nothing matches yet. Try another word, or post the first note about it.' : 'No notes yet. Tap + to post the first one.'}</div>`;
     return state.notes.map((n) => {
       const m = n.worth !== null ? `${verdictLabel(n)} · ${n.pct}% agree` : `Shared${n.place ? ' · ' + esc(n.place) : ''}`;
       return `<button class="row" data-open="${n.id}">
@@ -1076,13 +1065,13 @@ module.exports = function seed() {
   }
 
   function viewSearch() {
-    const chips = { Dorm: 'Allen', Food: 'ramen', Travel: 'carry', Winter: 'Quad', Shopping: 'mall' };
+    const chips = { Dorm: 'dorm', Food: 'food', Travel: 'travel', Winter: 'winter', Shopping: 'shop' };
     return `<main class="screen">
       <label class="search">${icon.search(18)}
         <input type="search" data-input="query" value="${esc(state.query)}" aria-label="Search notes" placeholder="Is it worth it?">
       </label>
       <div class="chips">${Object.entries(chips).map(([l, q]) => `<button data-chip="${esc(q)}">${l}</button>`).join('')}</div>
-      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Popular on campus'}</div>
+      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Latest'}</div>
       <div data-results>${resultRows()}</div>
     </main>`;
   }
@@ -1225,7 +1214,7 @@ module.exports = function seed() {
       <p class="sub" style="font-size:13px;line-height:1.5;margin:12px 0 28px">You can log in with your email, phone number or username, plus your password${a.google ? ', or with Google' : ''}.</p>
       <button class="btn-big danger-outline" data-logout>Log out</button>
       ${window.TROVE_LOCAL_RESET ? `<button class="btn-big ghost" data-reset style="margin-top:10px">Reset demo</button>
-        <p class="sub" style="font-size:13px;margin-top:12px">Demo version: sample notes, and everything you post stays on this device only.</p>` : ''}
+        <p class="sub" style="font-size:13px;margin-top:12px">Demo version: everything you post stays on this device only.</p>` : ''}
     </main>`;
   }
 
@@ -1513,7 +1502,7 @@ module.exports = function seed() {
           const box = $app.querySelector('[data-results]');
           const lbl = $app.querySelector('[data-results-label]');
           if (box) box.innerHTML = resultRows();
-          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Popular on campus';
+          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Latest';
         } catch (err) { toast(err.message); }
       }, 200);
     }
