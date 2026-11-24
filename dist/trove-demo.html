@@ -1,0 +1,829 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>trove</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+:root {
+  --bg: #FFFFFF; --fg: #111111; --sub: #6E6E73; --line: #E5E5EA; --field: #F2F2F4; --card: #FFFFFF;
+  --t0: #ECEAE6; --t1: #E3E8EC; --t2: #E8EAE3; --t3: #EEE6E6; --t4: #E6E4EE; --t5: #E9ECEA;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #000000; --fg: #F5F5F7; --sub: #A1A1A6; --line: #2C2C2E; --field: #1C1C1E; --card: #2C2C2E;
+    --t0: #26241F; --t1: #1F2428; --t2: #22251F; --t3: #2A2222; --t4: #24222B; --t5: #202523;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; background: var(--bg); color: var(--fg); }
+body { font-family: Inter, -apple-system, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+button { font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0; cursor: pointer; text-align: left; transition: transform .15s ease, background-color .2s ease, color .2s ease; }
+button:active { transform: scale(.96); }
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px solid var(--fg); outline-offset: 2px; }
+input, textarea { font: inherit; color: var(--fg); }
+input::placeholder, textarea::placeholder { color: var(--sub); }
+svg { display: block; }
+@keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+
+.app { max-width: 480px; margin: 0 auto; min-height: 100%; position: relative; }
+.screen { padding: calc(24px + var(--safe-top)) 16px calc(108px + var(--safe-bottom)); }
+.label-caps { font-size: 13px; font-weight: 600; color: var(--sub); text-transform: uppercase; letter-spacing: .6px; }
+.sub { color: var(--sub); }
+.empty { padding: 32px 0; text-align: center; font-size: 15px; color: var(--sub); }
+
+/* 首页 */
+.top { display: flex; align-items: baseline; justify-content: space-between; margin: 8px 0 16px; }
+.logo { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
+.seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 12px; background: var(--field); margin-bottom: 18px; }
+.seg button { height: 34px; border-radius: 9px; font-size: 13px; font-weight: 600; text-align: center; color: var(--sub); }
+.seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+.feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.col { display: flex; flex-direction: column; gap: 20px; }
+.card { display: flex; flex-direction: column; gap: 8px; }
+.card-open { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.thumb { position: relative; width: 100%; border-radius: 16px; margin-bottom: 2px; overflow: hidden; background-size: cover; background-position: center; }
+.pill { position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 4px; height: 24px; padding: 0 9px; border-radius: 12px; font-size: 12px; font-weight: 600; }
+.pill.yes { background: var(--fg); color: var(--bg); }
+.pill.no { background: var(--bg); color: var(--fg); }
+.card-title { font-size: 14px; font-weight: 600; line-height: 1.3; padding: 0 2px; }
+.card-meta { font-size: 13px; padding: 0 2px; color: var(--sub); }
+.card-foot { display: flex; justify-content: space-between; align-items: center; padding: 0 2px; font-size: 12px; color: var(--sub); gap: 6px; }
+.who { display: flex; align-items: center; gap: 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0; }
+.chip-btn { display: flex; align-items: center; gap: 4px; height: 30px; padding: 0 10px; border-radius: 15px; font-size: 12px; font-weight: 600; border: 1px solid var(--line); color: var(--fg); flex-shrink: 0; }
+.chip-btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+/* 搜索 */
+.search { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 14px; border-radius: 12px; background: var(--field); color: var(--sub); margin: 8px 0 20px; }
+.search input { flex: 1; border: 0; outline: none; background: transparent; font-size: 16px; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+.chips button { height: 34px; padding: 0 14px; border-radius: 17px; border: 1px solid var(--line); font-size: 14px; }
+.row { display: flex; gap: 14px; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--line); width: 100%; }
+.row-thumb { width: 64px; height: 64px; flex-shrink: 0; border-radius: 12px; background-size: cover; background-position: center; }
+.row-title { font-size: 15px; font-weight: 600; line-height: 1.3; }
+.row-meta { font-size: 13px; color: var(--sub); margin-top: 4px; }
+
+/* 发帖 */
+.post { display: flex; flex-direction: column; gap: 22px; animation: rise .3s ease; padding-bottom: calc(32px + var(--safe-bottom)); }
+.post-head { display: flex; justify-content: space-between; align-items: center; }
+.post-head h1 { font-size: 17px; font-weight: 600; margin: 0; }
+.btn-primary { height: 36px; padding: 0 18px; border-radius: 18px; background: var(--fg); color: var(--bg); font-size: 15px; font-weight: 600; }
+.btn-text { font-size: 16px; color: var(--sub); height: 44px; }
+.photos { display: flex; gap: 10px; flex-wrap: wrap; }
+.photo-add { width: 112px; height: 112px; border-radius: 16px; border: 1.5px dashed var(--line); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--sub); font-size: 13px; }
+.photo { position: relative; width: 112px; height: 112px; border-radius: 16px; background-size: cover; background-position: center; }
+.photo button { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; border-radius: 14px; background: rgba(0,0,0,.6); color: #fff; display: flex; align-items: center; justify-content: center; }
+.field { display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: var(--sub); }
+.field input, .field textarea { border: 0; border-bottom: 1px solid var(--line); outline: none; background: transparent; padding: 8px 0; font-size: 16px; }
+.field textarea { border-bottom: 0; resize: none; line-height: 1.5; padding: 4px 0; }
+.field input.big { font-size: 18px; font-weight: 600; }
+.two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.two.wide { gap: 14px; }
+.verdict-btn { height: 52px; border-radius: 14px; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: 15px; font-weight: 600; border: 1px solid var(--line); }
+.verdict-btn[aria-pressed="true"], .vote-btn[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+
+/* 我的 */
+.profile { display: flex; align-items: center; gap: 16px; margin: 24px 0 20px; }
+.avatar { width: 72px; height: 72px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 700; }
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 12px 0 28px; }
+.grid2 .thumb { height: 150px; }
+
+/* 详情 */
+.detail { position: fixed; inset: 0; background: var(--bg); animation: rise .3s ease; z-index: 20; }
+.detail-inner { max-width: 480px; margin: 0 auto; height: 100%; overflow-y: auto; padding-bottom: calc(100px + var(--safe-bottom)); }
+.hero { height: 400px; position: relative; background-size: cover; background-position: center; }
+.hero-strip { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; height: 100%; }
+.hero-strip div { flex: 0 0 100%; scroll-snap-align: start; background-size: cover; background-position: center; }
+.back { position: absolute; top: calc(16px + var(--safe-top)); left: 16px; width: 44px; height: 44px; border-radius: 22px; background: var(--bg); display: flex; align-items: center; justify-content: center; }
+.detail-body { padding: 20px 16px 32px; display: flex; flex-direction: column; gap: 16px; }
+.author-row { display: flex; align-items: center; justify-content: space-between; }
+.author-row .who { font-size: 14px; font-weight: 600; color: var(--fg); gap: 10px; }
+.author-row .dot { width: 32px; height: 32px; }
+.btn-outline { height: 36px; padding: 0 16px; border-radius: 18px; border: 1px solid var(--line); font-size: 14px; font-weight: 600; }
+.btn-outline[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.d-title { font-size: 22px; font-weight: 700; line-height: 1.25; letter-spacing: -.3px; margin: 0; }
+.verdict-box { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 16px; background: var(--field); }
+.verdict-box .pill { position: static; height: 30px; padding: 0 12px; font-size: 13px; }
+.place { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--sub); }
+.d-text { font-size: 16px; line-height: 1.6; white-space: pre-wrap; overflow-wrap: anywhere; }
+.agree-box { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 16px; border: 1px solid var(--line); }
+.bar { height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.bar div { height: 100%; background: var(--fg); transition: width .35s ease; }
+.vote-btn { height: 44px; border-radius: 12px; text-align: center; font-size: 15px; font-weight: 600; border: 1px solid var(--line); }
+.q { padding: 12px 0; border-bottom: 1px solid var(--line); font-size: 15px; line-height: 1.5; }
+.q b { font-weight: 600; margin-right: 6px; }
+.ask { position: fixed; left: 0; right: 0; bottom: 0; z-index: 21; background: var(--bg); border-top: 1px solid var(--line); }
+.ask form { max-width: 480px; margin: 0 auto; display: flex; align-items: center; gap: 8px; padding: 8px 16px calc(12px + var(--safe-bottom)); }
+.ask label { flex: 1; height: 40px; border-radius: 20px; background: var(--field); display: flex; align-items: center; padding: 0 16px; }
+.ask input { border: 0; outline: none; background: transparent; width: 100%; font-size: 15px; }
+.icon-btn { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+/* 底部导航 */
+.tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--bg); border-top: 1px solid var(--line); }
+.tabs nav { max-width: 480px; margin: 0 auto; height: calc(64px + var(--safe-bottom)); padding: 8px 24px var(--safe-bottom); display: flex; justify-content: space-between; align-items: center; }
+.tabs button { width: 48px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--sub); }
+.tabs button[aria-current="page"] { color: var(--fg); }
+.tabs .new { width: 52px; height: 40px; border-radius: 12px; background: var(--fg); color: var(--bg); }
+
+/* 欢迎页 */
+.welcome { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 32px 24px; }
+.welcome h1 { font-size: 40px; font-weight: 700; letter-spacing: -1px; margin: 0; }
+.welcome p { font-size: 17px; line-height: 1.5; margin: 0; color: var(--sub); }
+.welcome .btn-primary { height: 52px; border-radius: 14px; font-size: 16px; text-align: center; }
+.err { color: #C4321F; font-size: 14px; min-height: 20px; }
+@media (prefers-color-scheme: dark) { .err { color: #FF8A75; } }
+
+.toast { position: fixed; left: 50%; bottom: calc(96px + var(--safe-bottom)); transform: translateX(-50%) translateY(20px); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: 90vw; }
+.toast.show { opacity: 1; transform: translateX(-50%); }
+
+</style>
+</head>
+<body>
+<div id="app" class="app"></div>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+<script>
+window.TROVE_SEED = (function () { const module = {}; // 第一次启动时放进去的示例帖子（来自设计稿）。
+module.exports = function seed() {
+  const raw = [
+    { title: 'Mattress topper for the Allen Hall beds', author: 'maya.c', worth: true, price: '$35', place: 'Target', agree: 212, disagree: 9, likes: 0, t: 0, body: 'The dorm mattress is thin and hard. A 2-inch topper fixed it on night one. Get the twin XL size, the regular twin is too short.' },
+    { title: 'First snow on the Main Quad', author: 'sofia.p', worth: null, price: '', place: 'Main Quad', agree: 0, disagree: 0, likes: 342, t: 1, body: 'Walked out of a 9am and the whole Quad was white. Champaign winters are cold, but mornings like this make up for it.' },
+    { title: 'Late-night ramen on Green St', author: 'jt.eats', worth: true, price: '$14', place: 'Green St', agree: 148, disagree: 21, likes: 0, t: 2, body: 'Open past midnight, big portions, quick service. Go spicy miso and add an egg. Expect a short line after 10pm on weekends.' },
+    { title: 'A wool coat alone for a Champaign winter', author: 'noah.k', worth: false, price: '', place: 'Main Quad', agree: 175, disagree: 38, likes: 0, t: 3, body: 'It looks great, but the wind on the Quad goes right through it. Worth it only with a thin down layer underneath, plus gloves and a hat.' },
+    { title: 'My Allen Hall desk setup', author: 'kev.z', worth: null, price: '', place: 'Allen Hall', agree: 0, disagree: 0, likes: 188, t: 5, body: 'Small double, so everything goes vertical: a monitor arm, a shelf riser and a clip lamp. Total cost was less than one textbook.' },
+    { title: 'A carry-on that fits United', author: 'ryan.h', worth: true, price: '$129', place: 'T.J. Maxx', agree: 96, disagree: 4, likes: 0, t: 4, body: 'Check the tag for exterior size including wheels: 22 × 14 × 9 inches or less. Most 20-inch spinners pass. Anything labeled 24 inches is a checked bag.' },
+    { title: 'Sawgrass Mills on the way to FLL', author: 'ana.m', worth: true, price: '', place: 'Sunrise, FL', agree: 83, disagree: 6, likes: 0, t: 0, body: 'Huge outlet mall about 20–30 minutes from FLL. Shop with your carry-on, then take a ride straight to the airport.' }
+  ];
+  const start = Date.parse('2026-11-20T12:00:00Z');
+  const notes = raw.map((n, i) => ({
+    id: i + 1,
+    author: n.author,
+    title: n.title,
+    body: n.body,
+    worth: n.worth,
+    place: n.place,
+    price: n.price,
+    photos: [],
+    tint: n.t,
+    votes: {},
+    likes: [],
+    baseAgree: n.agree,
+    baseDisagree: n.disagree,
+    baseLikes: n.likes,
+    questions: [],
+    createdAt: new Date(start - i * 3600 * 1000).toISOString()
+  }));
+  return { lastId: notes.length, notes, users: {} };
+};
+; return module.exports; })();
+</script>
+<script>
+// 演示版用的“本地后端”：不需要服务器，把数据存在浏览器里。
+// 接口和 src/app.js 一样，前端的 app.js 不用改就能用。
+// 需要在它之前定义 window.TROVE_SEED（示例数据函数）。
+(() => {
+  'use strict';
+  const KEY = 'trove.demo.db';
+  const NAME_RE = /^[a-z0-9._]{2,20}$/;
+  let db;
+  try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) { db = null; }
+  if (!db) db = window.TROVE_SEED();
+
+  function save() {
+    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 存不下就只保留在内存里 */ }
+  }
+  class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
+
+  const nextId = () => (db.lastId = (db.lastId || 0) + 1);
+  const getUser = (name) => db.users[name] || (db.users[name] = { name, saved: [], following: [], createdAt: new Date().toISOString() });
+  const sorted = () => [...db.notes].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+  function view(note, me) {
+    const votes = Object.values(note.votes);
+    const agree = note.baseAgree + votes.filter((v) => v === 1).length;
+    const disagree = note.baseDisagree + votes.filter((v) => v === -1).length;
+    const total = agree + disagree;
+    const u = me ? getUser(me) : null;
+    return {
+      id: note.id, author: note.author, title: note.title, body: note.body, worth: note.worth,
+      place: note.place, price: note.price, photos: note.photos, tint: note.tint,
+      agree, disagree, total, pct: total ? Math.round((agree * 100) / total) : 0,
+      likes: note.baseLikes + note.likes.length, questions: note.questions, createdAt: note.createdAt,
+      myVote: me ? note.votes[me] || 0 : 0,
+      liked: me ? note.likes.includes(me) : false,
+      saved: u ? u.saved.includes(note.id) : false,
+      following: u ? u.following.includes(note.author) : false
+    };
+  }
+
+  function handle(method, url, user, body) {
+    const u = new URL(url, 'http://local');
+    const parts = u.pathname.split('/').filter(Boolean); // ['api', 'notes', '3', 'vote']
+    const me = NAME_RE.test(user || '') ? user : null;
+    const needUser = () => { if (!me) throw new HttpError(401, 'Pick a username first'); };
+    const findNote = () => {
+      const n = db.notes.find((x) => x.id === Number(parts[2]));
+      if (!n) throw new HttpError(404, 'Note not found');
+      return n;
+    };
+
+    if (method === 'GET' && u.pathname === '/api/notes') {
+      const filter = u.searchParams.get('filter') || 'all';
+      const q = (u.searchParams.get('q') || '').trim().toLowerCase();
+      let notes = sorted();
+      if (filter === 'yes') notes = notes.filter((n) => n.worth === true);
+      if (filter === 'no') notes = notes.filter((n) => n.worth === false);
+      if (q) notes = notes.filter((n) => [n.title, n.body, n.place, n.author].join(' ').toLowerCase().includes(q));
+      return notes.map((n) => view(n, me));
+    }
+    if (method === 'GET' && parts[1] === 'notes' && parts.length === 3) return view(findNote(), me);
+    if (method === 'GET' && u.pathname === '/api/me') {
+      needUser();
+      const usr = getUser(me);
+      return {
+        name: me, following: usr.following,
+        saved: usr.saved.map((id) => db.notes.find((n) => n.id === id)).filter(Boolean).map((n) => view(n, me)),
+        mine: sorted().filter((n) => n.author === me).map((n) => view(n, me))
+      };
+    }
+
+    if (method !== 'POST') throw new HttpError(404, 'Not found');
+    needUser();
+    const b = body || {};
+
+    if (u.pathname === '/api/notes') {
+      const title = String(b.title || '').trim();
+      if (!title) throw new HttpError(400, 'Add a title first');
+      const photos = (Array.isArray(b.photos) ? b.photos : []).slice(0, 4);
+      const note = {
+        id: nextId(), author: me, title, body: String(b.body || '').trim().slice(0, 5000),
+        worth: b.worth === true ? true : b.worth === false ? false : null,
+        place: String(b.place || '').trim().slice(0, 80), price: String(b.price || '').trim().slice(0, 20),
+        photos, tint: Math.floor(Math.random() * 6), votes: {}, likes: [],
+        baseAgree: 0, baseDisagree: 0, baseLikes: 0, questions: [], createdAt: new Date().toISOString()
+      };
+      db.notes.push(note);
+      save();
+      return view(note, me);
+    }
+    if (parts[1] === 'users' && parts[3] === 'follow') {
+      const target = decodeURIComponent(parts[2]);
+      if (target === me) throw new HttpError(400, 'You cannot follow yourself');
+      const usr = getUser(me);
+      const i = usr.following.indexOf(target);
+      if (i >= 0) usr.following.splice(i, 1); else usr.following.push(target);
+      save();
+      return { following: i < 0 };
+    }
+
+    const note = findNote();
+    const action = parts[3];
+    if (action === 'vote') {
+      if (note.worth === null) throw new HttpError(400, 'This note has no verdict to vote on');
+      const v = Number(b.value);
+      if (v === 0) delete note.votes[me]; else note.votes[me] = v;
+    } else if (action === 'like') {
+      const i = note.likes.indexOf(me);
+      if (i >= 0) note.likes.splice(i, 1); else note.likes.push(me);
+    } else if (action === 'save') {
+      const usr = getUser(me);
+      const i = usr.saved.indexOf(note.id);
+      if (i >= 0) usr.saved.splice(i, 1); else usr.saved.push(note.id);
+    } else if (action === 'questions') {
+      const text = String(b.text || '').trim();
+      if (!text) throw new HttpError(400, 'Write a question first');
+      note.questions.push({ id: nextId(), author: me, text: text.slice(0, 500), createdAt: new Date().toISOString() });
+    } else {
+      throw new HttpError(404, 'Not found');
+    }
+    save();
+    return view(note, me);
+  }
+
+  window.TROVE_LOCAL_API = async (path, { method = 'GET', user, body } = {}) => handle(method, path, user, body);
+  window.TROVE_LOCAL_RESET = () => {
+    try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
+    db = window.TROVE_SEED();
+  };
+})();
+
+</script>
+<script>
+// trove 前端：一个不依赖框架的单页应用。
+(() => {
+  'use strict';
+
+  const $app = document.getElementById('app');
+  const $toast = document.getElementById('toast');
+
+  // 有些环境（比如嵌在别的页面里）不允许用 localStorage，出错时就当没有
+  const storage = {
+    get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+    remove: (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+  };
+  let pushed = false; // 打开详情时是否往浏览器历史里加了一条
+
+  const state = {
+    user: storage.get('trove.user') || '',
+    tab: 'home', // home | search | post | me
+    filter: 'all', // all | yes | no
+    query: '',
+    notes: [],
+    me: null,
+    detail: null, // 正在看的帖子
+    draft: emptyDraft(),
+    busy: false
+  };
+
+  function emptyDraft() {
+    return { title: '', body: '', worth: null, place: '', price: '', photos: [] };
+  }
+
+  // ---------- 小工具 ----------
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const tint = (n) => `var(--t${(n.tint ?? 0) % 6})`;
+  const nameTint = (name) => `var(--t${[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 6})`;
+  const bgStyle = (n) => n.photos && n.photos.length
+    ? `background-color:${tint(n)};background-image:url('${esc(n.photos[0])}')`
+    : `background-color:${tint(n)}`;
+  const heights = [220, 210, 170, 230, 190, 200, 160];
+  const verdictLabel = (n) => n.worth === true ? 'Worth it' : n.worth === false ? 'Not worth it' : '';
+  const meta = (n) => [n.price, n.place].filter(Boolean).join(' · ');
+
+  const icon = {
+    check: (s = 12, w = 3) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>`,
+    x: (s = 12, w = 3) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
+    up: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`,
+    heart: (fill = 'currentColor', s = 12) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>`,
+    bookmark: (fill) => `<svg width="22" height="22" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>`,
+    search: (s = 24) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${s < 24 ? 2 : 1.8}" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
+    home: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>`,
+    plus: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
+    user: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
+    back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
+    pin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
+    send: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
+  };
+
+  let toastTimer;
+  function toast(msg) {
+    $toast.textContent = msg;
+    $toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $toast.classList.remove('show'), 2200);
+  }
+
+  async function api(path, opts = {}) {
+    // 演示版：没有服务器，交给浏览器里的本地后端处理
+    if (window.TROVE_LOCAL_API) {
+      return window.TROVE_LOCAL_API(path, { method: opts.method || 'GET', user: state.user, body: opts.body });
+    }
+    const res = await fetch(path, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...(state.user ? { 'X-User': state.user } : {}) },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  }
+
+  // ---------- 数据 ----------
+  async function loadNotes() {
+    const p = new URLSearchParams();
+    if (state.tab === 'home' && state.filter !== 'all') p.set('filter', state.filter);
+    if (state.tab === 'search' && state.query.trim()) p.set('q', state.query.trim());
+    state.notes = await api('/api/notes?' + p);
+  }
+
+  async function loadMe() {
+    state.me = await api('/api/me');
+  }
+
+  // 用服务器返回的新数据替换本地缓存里的同一条帖子
+  function replaceNote(n) {
+    state.notes = state.notes.map((x) => (x.id === n.id ? n : x));
+    if (state.detail && state.detail.id === n.id) state.detail = n;
+    if (state.me) {
+      state.me.saved = n.saved
+        ? (state.me.saved.some((x) => x.id === n.id) ? state.me.saved.map((x) => (x.id === n.id ? n : x)) : [n, ...state.me.saved])
+        : state.me.saved.filter((x) => x.id !== n.id);
+      state.me.mine = state.me.mine.map((x) => (x.id === n.id ? n : x));
+    }
+  }
+
+  // ---------- 页面 ----------
+  function viewWelcome() {
+    return `<form class="welcome" data-form="welcome">
+      <h1>trove</h1>
+      <p>Campus notes with a verdict. Share a find, say if it was worth it, and see if people agree.</p>
+      <label class="field">Pick a username
+        <input name="name" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="e.g. ryan.h" required>
+      </label>
+      <div class="err" data-err></div>
+      <button class="btn-primary" type="submit">Get started</button>
+    </form>`;
+  }
+
+  function card(n, i) {
+    const has = n.worth !== null;
+    const h = n.photos.length ? heights[i % heights.length] + 20 : heights[n.id % heights.length];
+    return `<div class="card">
+      <button class="card-open" data-open="${n.id}" aria-label="${esc(n.title)}">
+        <div class="thumb" style="height:${h}px;${bgStyle(n)}">
+          ${has ? `<span class="pill ${n.worth ? 'yes' : 'no'}">${n.worth ? icon.check() : icon.x()}${verdictLabel(n)}</span>` : ''}
+        </div>
+        <div class="card-title">${esc(n.title)}</div>
+        ${meta(n) ? `<div class="card-meta">${esc(meta(n))}</div>` : ''}
+      </button>
+      <div class="card-foot">
+        <span class="who"><span class="dot" style="background:${nameTint(n.author)}"></span>${esc(n.author)}</span>
+        ${has
+          ? `<button class="chip-btn" data-agree="${n.id}" aria-pressed="${n.myVote === 1}" aria-label="Agree with this verdict">${icon.up}${n.agree}</button>`
+          : `<button class="chip-btn" data-like="${n.id}" aria-pressed="${n.liked}" aria-label="Like this note">${icon.heart()}${n.likes}</button>`}
+      </div>
+    </div>`;
+  }
+
+  function viewHome() {
+    const f = [['all', 'All'], ['yes', 'Worth it'], ['no', 'Not worth it']];
+    const left = state.notes.filter((_, i) => i % 2 === 0);
+    const right = state.notes.filter((_, i) => i % 2 === 1);
+    return `<main class="screen">
+      <div class="top"><div class="logo">trove</div><div class="sub" style="font-size:13px">Champaign, IL</div></div>
+      <div class="seg" role="group" aria-label="Filter notes">
+        ${f.map(([k, l]) => `<button data-filter="${k}" aria-pressed="${state.filter === k}" style="text-align:center">${l}</button>`).join('')}
+      </div>
+      ${state.notes.length
+        ? `<div class="feed"><div class="col">${left.map((n, i) => card(n, i * 2)).join('')}</div><div class="col">${right.map((n, i) => card(n, i * 2 + 1)).join('')}</div></div>`
+        : `<div class="empty">Nothing here yet. Tap + to post the first note.</div>`}
+    </main>`;
+  }
+
+  function resultRows() {
+    if (!state.notes.length) return `<div class="empty">No verdicts yet. Be the first to post one.</div>`;
+    return state.notes.map((n) => {
+      const m = n.worth !== null ? `${verdictLabel(n)} · ${n.pct}% agree` : `Shared${n.place ? ' · ' + esc(n.place) : ''}`;
+      return `<button class="row" data-open="${n.id}">
+        <div class="row-thumb" style="${bgStyle(n)}"></div>
+        <div style="min-width:0"><div class="row-title">${esc(n.title)}</div><div class="row-meta">${m}</div></div>
+      </button>`;
+    }).join('');
+  }
+
+  function viewSearch() {
+    const chips = { Dorm: 'Allen', Food: 'ramen', Travel: 'carry', Winter: 'Quad', Shopping: 'mall' };
+    return `<main class="screen">
+      <label class="search">${icon.search(18)}
+        <input type="search" data-input="query" value="${esc(state.query)}" aria-label="Search notes" placeholder="Is it worth it?">
+      </label>
+      <div class="chips">${Object.entries(chips).map(([l, q]) => `<button data-chip="${esc(q)}">${l}</button>`).join('')}</div>
+      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Popular on campus'}</div>
+      <div data-results>${resultRows()}</div>
+    </main>`;
+  }
+
+  function viewPost() {
+    const d = state.draft;
+    return `<form class="screen post" data-form="post" style="padding-bottom:32px">
+      <div class="post-head">
+        <button type="button" class="btn-text" data-cancel>Cancel</button>
+        <h1>New note</h1>
+        <button type="submit" class="btn-primary" ${state.busy ? 'disabled' : ''}>${state.busy ? 'Posting…' : 'Post'}</button>
+      </div>
+      <div class="photos">
+        ${d.photos.map((p, i) => `<div class="photo" style="background-image:url('${p}')"><button type="button" data-rm-photo="${i}" aria-label="Remove photo">${icon.x(14, 2.4)}</button></div>`).join('')}
+        ${d.photos.length < 4 ? `<label class="photo-add" style="cursor:pointer;position:relative">${icon.plus(24)}Photos
+          <input type="file" accept="image/*" multiple data-photos style="position:absolute;width:1px;height:1px;opacity:0"></label>` : ''}
+      </div>
+      <label class="field">Title
+        <input class="big" data-draft="title" value="${esc(d.title)}" maxlength="120" placeholder="What do you want to share?">
+      </label>
+      <label class="field">Your story
+        <textarea rows="5" data-draft="body" maxlength="5000" placeholder="A moment, a find, a tip. Anything worth sharing.">${esc(d.body)}</textarea>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="sub" style="font-size:13px">Add a verdict <span style="opacity:.8">· optional</span></div>
+        <div class="two" role="group" aria-label="Your verdict">
+          <button type="button" class="verdict-btn" data-worth="yes" aria-pressed="${d.worth === true}">${icon.check(16, 2.6)}Worth it</button>
+          <button type="button" class="verdict-btn" data-worth="no" aria-pressed="${d.worth === false}">${icon.x(16, 2.6)}Not worth it</button>
+        </div>
+      </div>
+      <div class="two wide">
+        <label class="field">Place · optional<input data-draft="place" value="${esc(d.place)}" maxlength="80" placeholder="Where?"></label>
+        <label class="field">Price · optional<input data-draft="price" value="${esc(d.price)}" maxlength="20" placeholder="$" inputmode="decimal"></label>
+      </div>
+    </form>`;
+  }
+
+  function miniGrid(list, emptyText) {
+    if (!list.length) return `<div class="empty" style="padding:16px 0 28px">${emptyText}</div>`;
+    return `<div class="grid2">${list.map((n) => `<button class="card-open" data-open="${n.id}">
+      <div class="thumb" style="${bgStyle(n)}"></div>
+      <div class="card-title">${esc(n.title)}</div>
+      ${meta(n) ? `<div class="card-meta">${esc(meta(n))}</div>` : ''}
+    </button>`).join('')}</div>`;
+  }
+
+  function viewMe() {
+    const m = state.me || { saved: [], mine: [], following: [] };
+    return `<main class="screen">
+      <div class="profile">
+        <div class="avatar" style="background:${nameTint(state.user)}">${esc(state.user[0].toUpperCase())}</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:22px;font-weight:700">@${esc(state.user)}</div>
+          <div class="sub" style="font-size:14px">${m.mine.length} notes · following ${m.following.length}</div>
+        </div>
+      </div>
+      <div class="label-caps">Saved · ${m.saved.length}</div>
+      ${miniGrid(m.saved, 'Tap the bookmark on any note to keep it here.')}
+      <div class="label-caps">My notes · ${m.mine.length}</div>
+      ${miniGrid(m.mine, 'You have not posted yet.')}
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-outline" data-logout>Switch user</button>
+        ${window.TROVE_LOCAL_RESET ? '<button class="btn-outline" data-reset>Reset demo</button>' : ''}
+      </div>
+      ${window.TROVE_LOCAL_RESET ? '<p class="sub" style="font-size:13px;margin-top:16px">Demo version: sample notes, and everything you post stays on this device only.</p>' : ''}
+    </main>`;
+  }
+
+  function viewDetail() {
+    const n = state.detail;
+    const has = n.worth !== null;
+    const mineNote = n.author === state.user;
+    const hero = n.photos.length > 1
+      ? `<div class="hero-strip">${n.photos.map((p) => `<div style="background-image:url('${esc(p)}')" role="img" aria-label="Photo"></div>`).join('')}</div>`
+      : '';
+    return `<div class="detail" role="dialog" aria-modal="true" aria-label="${esc(n.title)}">
+      <div class="detail-inner">
+        <div class="hero" style="${n.photos.length > 1 ? `background:${tint(n)}` : bgStyle(n)}">
+          ${hero}
+          <button class="back" data-close aria-label="Back">${icon.back}</button>
+        </div>
+        <div class="detail-body">
+          <div class="author-row">
+            <span class="who"><span class="dot" style="background:${nameTint(n.author)}"></span>${esc(n.author)}</span>
+            ${mineNote ? '' : `<button class="btn-outline" data-follow="${esc(n.author)}" aria-pressed="${n.following}">${n.following ? 'Following' : 'Follow'}</button>`}
+          </div>
+          <h2 class="d-title">${esc(n.title)}</h2>
+          ${has ? `<div class="verdict-box"><span class="pill ${n.worth ? 'yes' : 'no'}">${verdictLabel(n)}</span><span style="font-size:15px;font-weight:600">${esc(meta(n))}</span></div>`
+            : n.place ? `<div class="place">${icon.pin}${esc(n.place)}</div>` : ''}
+          ${n.body ? `<div class="d-text">${esc(n.body)}</div>` : ''}
+          ${has ? `<div class="agree-box">
+            <div style="font-size:15px;font-weight:600">Do you agree?</div>
+            <div class="bar"><div style="width:${n.pct}%"></div></div>
+            <div class="sub" style="font-size:13px">${n.total ? `${n.pct}% of ${n.total} people agree` : 'No votes yet'}</div>
+            <div class="two">
+              <button class="vote-btn" data-vote="1" aria-pressed="${n.myVote === 1}">Agree</button>
+              <button class="vote-btn" data-vote="-1" aria-pressed="${n.myVote === -1}">Disagree</button>
+            </div>
+          </div>` : ''}
+          <div>
+            <div class="label-caps" style="margin-top:8px">Questions · ${n.questions.length}</div>
+            ${n.questions.length
+              ? n.questions.map((q) => `<div class="q"><b>${esc(q.author)}</b>${esc(q.text)}</div>`).join('')
+              : `<div class="sub" style="font-size:14px;padding:12px 0">No questions yet. Ask ${esc(n.author)} below.</div>`}
+          </div>
+        </div>
+      </div>
+      <div class="ask"><form data-form="ask">
+        <label><input name="q" aria-label="Ask the author" maxlength="500" placeholder="Ask the author…" autocomplete="off"></label>
+        <button type="submit" class="icon-btn" aria-label="Send question">${icon.send}</button>
+        <button type="button" class="icon-btn" data-like-detail aria-label="Like" aria-pressed="${n.liked}">${icon.heart(n.liked ? 'currentColor' : 'none', 23)}</button>
+        <button type="button" class="icon-btn" data-save aria-label="Save" aria-pressed="${n.saved}">${icon.bookmark(n.saved ? 'currentColor' : 'none')}</button>
+      </form></div>
+    </div>`;
+  }
+
+  function viewTabs() {
+    const t = (k, label, svg) => `<button data-tab="${k}" aria-label="${label}" ${state.tab === k ? 'aria-current="page"' : ''}>${svg}</button>`;
+    return `<div class="tabs"><nav aria-label="Main">
+      ${t('home', 'Home', icon.home)}
+      ${t('search', 'Search', icon.search())}
+      <button class="new" data-tab="post" aria-label="New note">${icon.plus()}</button>
+      ${t('me', 'Profile', icon.user)}
+    </nav></div>`;
+  }
+
+  function render() {
+    if (!state.user) { $app.innerHTML = viewWelcome(); return; }
+    const screen = { home: viewHome, search: viewSearch, post: viewPost, me: viewMe }[state.tab]();
+    $app.innerHTML = screen + (state.tab !== 'post' ? viewTabs() : '') + (state.detail ? viewDetail() : '');
+    document.body.style.overflow = state.detail ? 'hidden' : '';
+  }
+
+  // ---------- 动作 ----------
+  async function go(tab) {
+    state.tab = tab;
+    state.detail = null;
+    render();
+    window.scrollTo(0, 0);
+    try {
+      if (tab === 'home' || tab === 'search') await loadNotes();
+      if (tab === 'me') await loadMe();
+      render();
+    } catch (e) { toast(e.message); }
+  }
+
+  async function openNote(id) {
+    try {
+      state.detail = await api('/api/notes/' + id);
+      render();
+      try { history.pushState({ note: id }, ''); pushed = true; } catch (e) { pushed = false; }
+    } catch (e) { toast(e.message); }
+  }
+
+  function closeNote() {
+    state.detail = null;
+    render();
+  }
+
+  // 关闭详情：如果打开时加过历史记录，就用“返回”关掉，这样手机的返回手势也一致
+  function leaveDetail() {
+    if (pushed) { pushed = false; history.back(); } else closeNote();
+  }
+
+  async function act(path, body) {
+    try {
+      const n = await api(path, { method: 'POST', body: body || {} });
+      replaceNote(n);
+      render();
+      return n;
+    } catch (e) { toast(e.message); }
+  }
+
+  // 把选的照片缩小到最长边 1280px 再上传，省流量
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that photo')); };
+      img.src = url;
+    });
+  }
+
+  let searchTimer;
+  $app.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.dataset.draft) state.draft[el.dataset.draft] = el.value;
+    if (el.dataset.input === 'query') {
+      state.query = el.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(async () => {
+        try {
+          await loadNotes();
+          const box = $app.querySelector('[data-results]');
+          const lbl = $app.querySelector('[data-results-label]');
+          if (box) box.innerHTML = resultRows();
+          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Popular on campus';
+        } catch (err) { toast(err.message); }
+      }, 200);
+    }
+  });
+
+  $app.addEventListener('change', async (e) => {
+    if (!e.target.matches('[data-photos]')) return;
+    const files = [...e.target.files].slice(0, 4 - state.draft.photos.length);
+    try {
+      for (const f of files) state.draft.photos.push(await shrink(f));
+    } catch (err) { toast(err.message); }
+    render();
+  });
+
+  $app.addEventListener('click', async (e) => {
+    const el = e.target.closest('button');
+    if (!el) return;
+    const d = el.dataset;
+    if (d.tab) return go(d.tab);
+    if (d.open) return openNote(Number(d.open));
+    if ('close' in d) return leaveDetail();
+    if (d.filter) { state.filter = d.filter; return go('home'); }
+    if (d.chip) {
+      state.query = d.chip;
+      render();
+      try { await loadNotes(); render(); } catch (err) { toast(err.message); }
+      return;
+    }
+    if (d.agree) {
+      const n = state.notes.find((x) => x.id === Number(d.agree));
+      return act(`/api/notes/${d.agree}/vote`, { value: n && n.myVote === 1 ? 0 : 1 });
+    }
+    if (d.like) return act(`/api/notes/${d.like}/like`);
+    if (d.vote) {
+      const v = Number(d.vote);
+      return act(`/api/notes/${state.detail.id}/vote`, { value: state.detail.myVote === v ? 0 : v });
+    }
+    if ('likeDetail' in d) return act(`/api/notes/${state.detail.id}/like`);
+    if ('save' in d) {
+      const n = await act(`/api/notes/${state.detail.id}/save`);
+      if (n) toast(n.saved ? 'Saved to your profile' : 'Removed from saved');
+      return;
+    }
+    if (d.follow) {
+      try {
+        const r = await api(`/api/users/${encodeURIComponent(d.follow)}/follow`, { method: 'POST' });
+        state.detail.following = r.following;
+        state.notes.forEach((n) => { if (n.author === d.follow) n.following = r.following; });
+        render();
+      } catch (err) { toast(err.message); }
+      return;
+    }
+    if (d.worth) {
+      const want = d.worth === 'yes';
+      state.draft.worth = state.draft.worth === want ? null : want;
+      return render();
+    }
+    if (d.rmPhoto) { state.draft.photos.splice(Number(d.rmPhoto), 1); return render(); }
+    if ('cancel' in d) {
+      // 不弹确认框：草稿保留着，下次点 + 还能接着写
+      const dr = state.draft;
+      if (dr.title || dr.body || dr.photos.length) toast('Draft kept');
+      return go('home');
+    }
+    if ('reset' in d) {
+      window.TROVE_LOCAL_RESET();
+      state.draft = emptyDraft();
+      toast('Demo data reset');
+      return go('me');
+    }
+    if ('logout' in d) {
+      storage.remove('trove.user');
+      state.user = '';
+      state.me = null;
+      return render();
+    }
+  });
+
+  $app.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const kind = form.dataset.form;
+
+    if (kind === 'welcome') {
+      const name = form.elements.name.value.trim().toLowerCase();
+      if (!/^[a-z0-9._]{2,20}$/.test(name)) {
+        form.querySelector('[data-err]').textContent = '2–20 characters: lowercase letters, numbers, . or _';
+        return;
+      }
+      state.user = name;
+      storage.set('trove.user', name);
+      return go('home');
+    }
+
+    if (kind === 'post') {
+      if (state.busy) return;
+      if (!state.draft.title.trim()) { toast('Add a title first'); return; }
+      state.busy = true;
+      render();
+      try {
+        await api('/api/notes', { method: 'POST', body: state.draft });
+        state.draft = emptyDraft();
+        state.filter = 'all';
+        state.busy = false;
+        toast('Posted');
+        return go('home');
+      } catch (err) {
+        state.busy = false;
+        render();
+        toast(err.message);
+      }
+    }
+
+    if (kind === 'ask') {
+      const text = form.elements.q.value.trim();
+      if (!text) return;
+      const n = await act(`/api/notes/${state.detail.id}/questions`, { text });
+      if (n) toast('Question sent');
+    }
+  });
+
+  // 手机上的“返回”手势关闭详情页
+  window.addEventListener('popstate', () => { pushed = false; if (state.detail) closeNote(); });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.detail) leaveDetail();
+  });
+
+  if (state.user) go('home'); else render();
+})();
+
+</script>
+</body>
+</html>

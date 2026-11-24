@@ -5,8 +5,16 @@
   const $app = document.getElementById('app');
   const $toast = document.getElementById('toast');
 
+  // 有些环境（比如嵌在别的页面里）不允许用 localStorage，出错时就当没有
+  const storage = {
+    get: (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+    set: (k, v) => { try { localStorage.setItem(k, v); } catch (e) { /* ignore */ } },
+    remove: (k) => { try { localStorage.removeItem(k); } catch (e) { /* ignore */ } }
+  };
+  let pushed = false; // 打开详情时是否往浏览器历史里加了一条
+
   const state = {
-    user: localStorage.getItem('trove.user') || '',
+    user: storage.get('trove.user') || '',
     tab: 'home', // home | search | post | me
     filter: 'all', // all | yes | no
     query: '',
@@ -56,6 +64,10 @@
   }
 
   async function api(path, opts = {}) {
+    // 演示版：没有服务器，交给浏览器里的本地后端处理
+    if (window.TROVE_LOCAL_API) {
+      return window.TROVE_LOCAL_API(path, { method: opts.method || 'GET', user: state.user, body: opts.body });
+    }
     const res = await fetch(path, {
       method: opts.method || 'GET',
       headers: { 'Content-Type': 'application/json', ...(state.user ? { 'X-User': state.user } : {}) },
@@ -217,7 +229,11 @@
       ${miniGrid(m.saved, 'Tap the bookmark on any note to keep it here.')}
       <div class="label-caps">My notes · ${m.mine.length}</div>
       ${miniGrid(m.mine, 'You have not posted yet.')}
-      <button class="btn-outline" data-logout>Switch user</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-outline" data-logout>Switch user</button>
+        ${window.TROVE_LOCAL_RESET ? '<button class="btn-outline" data-reset>Reset demo</button>' : ''}
+      </div>
+      ${window.TROVE_LOCAL_RESET ? '<p class="sub" style="font-size:13px;margin-top:16px">Demo version: sample notes, and everything you post stays on this device only.</p>' : ''}
     </main>`;
   }
 
@@ -303,13 +319,18 @@
     try {
       state.detail = await api('/api/notes/' + id);
       render();
-      history.pushState({ note: id }, '');
+      try { history.pushState({ note: id }, ''); pushed = true; } catch (e) { pushed = false; }
     } catch (e) { toast(e.message); }
   }
 
   function closeNote() {
     state.detail = null;
     render();
+  }
+
+  // 关闭详情：如果打开时加过历史记录，就用“返回”关掉，这样手机的返回手势也一致
+  function leaveDetail() {
+    if (pushed) { pushed = false; history.back(); } else closeNote();
   }
 
   async function act(path, body) {
@@ -374,7 +395,7 @@
     const d = el.dataset;
     if (d.tab) return go(d.tab);
     if (d.open) return openNote(Number(d.open));
-    if ('close' in d) return history.back();
+    if ('close' in d) return leaveDetail();
     if (d.filter) { state.filter = d.filter; return go('home'); }
     if (d.chip) {
       state.query = d.chip;
@@ -413,13 +434,19 @@
     }
     if (d.rmPhoto) { state.draft.photos.splice(Number(d.rmPhoto), 1); return render(); }
     if ('cancel' in d) {
+      // 不弹确认框：草稿保留着，下次点 + 还能接着写
       const dr = state.draft;
-      if ((dr.title || dr.body || dr.photos.length) && !confirm('Discard this note?')) return;
-      state.draft = emptyDraft();
+      if (dr.title || dr.body || dr.photos.length) toast('Draft kept');
       return go('home');
     }
+    if ('reset' in d) {
+      window.TROVE_LOCAL_RESET();
+      state.draft = emptyDraft();
+      toast('Demo data reset');
+      return go('me');
+    }
     if ('logout' in d) {
-      localStorage.removeItem('trove.user');
+      storage.remove('trove.user');
       state.user = '';
       state.me = null;
       return render();
@@ -438,7 +465,7 @@
         return;
       }
       state.user = name;
-      localStorage.setItem('trove.user', name);
+      storage.set('trove.user', name);
       return go('home');
     }
 
@@ -470,10 +497,10 @@
   });
 
   // 手机上的“返回”手势关闭详情页
-  window.addEventListener('popstate', () => { if (state.detail) closeNote(); });
+  window.addEventListener('popstate', () => { pushed = false; if (state.detail) closeNote(); });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && state.detail) history.back();
+    if (e.key === 'Escape' && state.detail) leaveDetail();
   });
 
   if (state.user) go('home'); else render();
