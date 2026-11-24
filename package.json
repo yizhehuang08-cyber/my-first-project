@@ -1,0 +1,22 @@
+{
+  "name": "trove",
+  "version": "1.0.0",
+  "description": "trove: campus notes with a verdict",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yizhehuang08-cyber/my-first-project.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yizhehuang08-cyber/my-first-project/issues"
+  },
+  "homepage": "https://github.com/yizhehuang08-cyber/my-first-project#readme",
+  "dependencies": {
+    "express": "^4.22.3"
+  },
+  "private": true
+}

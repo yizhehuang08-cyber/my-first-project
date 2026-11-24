@@ -1,0 +1,480 @@
+// trove 前端：一个不依赖框架的单页应用。
+(() => {
+  'use strict';
+
+  const $app = document.getElementById('app');
+  const $toast = document.getElementById('toast');
+
+  const state = {
+    user: localStorage.getItem('trove.user') || '',
+    tab: 'home', // home | search | post | me
+    filter: 'all', // all | yes | no
+    query: '',
+    notes: [],
+    me: null,
+    detail: null, // 正在看的帖子
+    draft: emptyDraft(),
+    busy: false
+  };
+
+  function emptyDraft() {
+    return { title: '', body: '', worth: null, place: '', price: '', photos: [] };
+  }
+
+  // ---------- 小工具 ----------
+  const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const tint = (n) => `var(--t${(n.tint ?? 0) % 6})`;
+  const nameTint = (name) => `var(--t${[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 6})`;
+  const bgStyle = (n) => n.photos && n.photos.length
+    ? `background-color:${tint(n)};background-image:url('${esc(n.photos[0])}')`
+    : `background-color:${tint(n)}`;
+  const heights = [220, 210, 170, 230, 190, 200, 160];
+  const verdictLabel = (n) => n.worth === true ? 'Worth it' : n.worth === false ? 'Not worth it' : '';
+  const meta = (n) => [n.price, n.place].filter(Boolean).join(' · ');
+
+  const icon = {
+    check: (s = 12, w = 3) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>`,
+    x: (s = 12, w = 3) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>`,
+    up: `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7"/></svg>`,
+    heart: (fill = 'currentColor', s = 12) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 20s-7-4.4-9-9a4.8 4.8 0 0 1 9-3 4.8 4.8 0 0 1 9 3c-2 4.6-9 9-9 9z"/></svg>`,
+    bookmark: (fill) => `<svg width="22" height="22" viewBox="0 0 24 24" fill="${fill}" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 3h12v18l-6-4-6 4z"/></svg>`,
+    search: (s = 24) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${s < 24 ? 2 : 1.8}" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>`,
+    home: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>`,
+    plus: (s = 22) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>`,
+    user: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
+    back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
+    pin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
+    send: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
+  };
+
+  let toastTimer;
+  function toast(msg) {
+    $toast.textContent = msg;
+    $toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => $toast.classList.remove('show'), 2200);
+  }
+
+  async function api(path, opts = {}) {
+    const res = await fetch(path, {
+      method: opts.method || 'GET',
+      headers: { 'Content-Type': 'application/json', ...(state.user ? { 'X-User': state.user } : {}) },
+      body: opts.body ? JSON.stringify(opts.body) : undefined
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Something went wrong');
+    return data;
+  }
+
+  // ---------- 数据 ----------
+  async function loadNotes() {
+    const p = new URLSearchParams();
+    if (state.tab === 'home' && state.filter !== 'all') p.set('filter', state.filter);
+    if (state.tab === 'search' && state.query.trim()) p.set('q', state.query.trim());
+    state.notes = await api('/api/notes?' + p);
+  }
+
+  async function loadMe() {
+    state.me = await api('/api/me');
+  }
+
+  // 用服务器返回的新数据替换本地缓存里的同一条帖子
+  function replaceNote(n) {
+    state.notes = state.notes.map((x) => (x.id === n.id ? n : x));
+    if (state.detail && state.detail.id === n.id) state.detail = n;
+    if (state.me) {
+      state.me.saved = n.saved
+        ? (state.me.saved.some((x) => x.id === n.id) ? state.me.saved.map((x) => (x.id === n.id ? n : x)) : [n, ...state.me.saved])
+        : state.me.saved.filter((x) => x.id !== n.id);
+      state.me.mine = state.me.mine.map((x) => (x.id === n.id ? n : x));
+    }
+  }
+
+  // ---------- 页面 ----------
+  function viewWelcome() {
+    return `<form class="welcome" data-form="welcome">
+      <h1>trove</h1>
+      <p>Campus notes with a verdict. Share a find, say if it was worth it, and see if people agree.</p>
+      <label class="field">Pick a username
+        <input name="name" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="e.g. ryan.h" required>
+      </label>
+      <div class="err" data-err></div>
+      <button class="btn-primary" type="submit">Get started</button>
+    </form>`;
+  }
+
+  function card(n, i) {
+    const has = n.worth !== null;
+    const h = n.photos.length ? heights[i % heights.length] + 20 : heights[n.id % heights.length];
+    return `<div class="card">
+      <button class="card-open" data-open="${n.id}" aria-label="${esc(n.title)}">
+        <div class="thumb" style="height:${h}px;${bgStyle(n)}">
+          ${has ? `<span class="pill ${n.worth ? 'yes' : 'no'}">${n.worth ? icon.check() : icon.x()}${verdictLabel(n)}</span>` : ''}
+        </div>
+        <div class="card-title">${esc(n.title)}</div>
+        ${meta(n) ? `<div class="card-meta">${esc(meta(n))}</div>` : ''}
+      </button>
+      <div class="card-foot">
+        <span class="who"><span class="dot" style="background:${nameTint(n.author)}"></span>${esc(n.author)}</span>
+        ${has
+          ? `<button class="chip-btn" data-agree="${n.id}" aria-pressed="${n.myVote === 1}" aria-label="Agree with this verdict">${icon.up}${n.agree}</button>`
+          : `<button class="chip-btn" data-like="${n.id}" aria-pressed="${n.liked}" aria-label="Like this note">${icon.heart()}${n.likes}</button>`}
+      </div>
+    </div>`;
+  }
+
+  function viewHome() {
+    const f = [['all', 'All'], ['yes', 'Worth it'], ['no', 'Not worth it']];
+    const left = state.notes.filter((_, i) => i % 2 === 0);
+    const right = state.notes.filter((_, i) => i % 2 === 1);
+    return `<main class="screen">
+      <div class="top"><div class="logo">trove</div><div class="sub" style="font-size:13px">Champaign, IL</div></div>
+      <div class="seg" role="group" aria-label="Filter notes">
+        ${f.map(([k, l]) => `<button data-filter="${k}" aria-pressed="${state.filter === k}" style="text-align:center">${l}</button>`).join('')}
+      </div>
+      ${state.notes.length
+        ? `<div class="feed"><div class="col">${left.map((n, i) => card(n, i * 2)).join('')}</div><div class="col">${right.map((n, i) => card(n, i * 2 + 1)).join('')}</div></div>`
+        : `<div class="empty">Nothing here yet. Tap + to post the first note.</div>`}
+    </main>`;
+  }
+
+  function resultRows() {
+    if (!state.notes.length) return `<div class="empty">No verdicts yet. Be the first to post one.</div>`;
+    return state.notes.map((n) => {
+      const m = n.worth !== null ? `${verdictLabel(n)} · ${n.pct}% agree` : `Shared${n.place ? ' · ' + esc(n.place) : ''}`;
+      return `<button class="row" data-open="${n.id}">
+        <div class="row-thumb" style="${bgStyle(n)}"></div>
+        <div style="min-width:0"><div class="row-title">${esc(n.title)}</div><div class="row-meta">${m}</div></div>
+      </button>`;
+    }).join('');
+  }
+
+  function viewSearch() {
+    const chips = { Dorm: 'Allen', Food: 'ramen', Travel: 'carry', Winter: 'Quad', Shopping: 'mall' };
+    return `<main class="screen">
+      <label class="search">${icon.search(18)}
+        <input type="search" data-input="query" value="${esc(state.query)}" aria-label="Search notes" placeholder="Is it worth it?">
+      </label>
+      <div class="chips">${Object.entries(chips).map(([l, q]) => `<button data-chip="${esc(q)}">${l}</button>`).join('')}</div>
+      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Popular on campus'}</div>
+      <div data-results>${resultRows()}</div>
+    </main>`;
+  }
+
+  function viewPost() {
+    const d = state.draft;
+    return `<form class="screen post" data-form="post" style="padding-bottom:32px">
+      <div class="post-head">
+        <button type="button" class="btn-text" data-cancel>Cancel</button>
+        <h1>New note</h1>
+        <button type="submit" class="btn-primary" ${state.busy ? 'disabled' : ''}>${state.busy ? 'Posting…' : 'Post'}</button>
+      </div>
+      <div class="photos">
+        ${d.photos.map((p, i) => `<div class="photo" style="background-image:url('${p}')"><button type="button" data-rm-photo="${i}" aria-label="Remove photo">${icon.x(14, 2.4)}</button></div>`).join('')}
+        ${d.photos.length < 4 ? `<label class="photo-add" style="cursor:pointer;position:relative">${icon.plus(24)}Photos
+          <input type="file" accept="image/*" multiple data-photos style="position:absolute;width:1px;height:1px;opacity:0"></label>` : ''}
+      </div>
+      <label class="field">Title
+        <input class="big" data-draft="title" value="${esc(d.title)}" maxlength="120" placeholder="What do you want to share?">
+      </label>
+      <label class="field">Your story
+        <textarea rows="5" data-draft="body" maxlength="5000" placeholder="A moment, a find, a tip. Anything worth sharing.">${esc(d.body)}</textarea>
+      </label>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="sub" style="font-size:13px">Add a verdict <span style="opacity:.8">· optional</span></div>
+        <div class="two" role="group" aria-label="Your verdict">
+          <button type="button" class="verdict-btn" data-worth="yes" aria-pressed="${d.worth === true}">${icon.check(16, 2.6)}Worth it</button>
+          <button type="button" class="verdict-btn" data-worth="no" aria-pressed="${d.worth === false}">${icon.x(16, 2.6)}Not worth it</button>
+        </div>
+      </div>
+      <div class="two wide">
+        <label class="field">Place · optional<input data-draft="place" value="${esc(d.place)}" maxlength="80" placeholder="Where?"></label>
+        <label class="field">Price · optional<input data-draft="price" value="${esc(d.price)}" maxlength="20" placeholder="$" inputmode="decimal"></label>
+      </div>
+    </form>`;
+  }
+
+  function miniGrid(list, emptyText) {
+    if (!list.length) return `<div class="empty" style="padding:16px 0 28px">${emptyText}</div>`;
+    return `<div class="grid2">${list.map((n) => `<button class="card-open" data-open="${n.id}">
+      <div class="thumb" style="${bgStyle(n)}"></div>
+      <div class="card-title">${esc(n.title)}</div>
+      ${meta(n) ? `<div class="card-meta">${esc(meta(n))}</div>` : ''}
+    </button>`).join('')}</div>`;
+  }
+
+  function viewMe() {
+    const m = state.me || { saved: [], mine: [], following: [] };
+    return `<main class="screen">
+      <div class="profile">
+        <div class="avatar" style="background:${nameTint(state.user)}">${esc(state.user[0].toUpperCase())}</div>
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <div style="font-size:22px;font-weight:700">@${esc(state.user)}</div>
+          <div class="sub" style="font-size:14px">${m.mine.length} notes · following ${m.following.length}</div>
+        </div>
+      </div>
+      <div class="label-caps">Saved · ${m.saved.length}</div>
+      ${miniGrid(m.saved, 'Tap the bookmark on any note to keep it here.')}
+      <div class="label-caps">My notes · ${m.mine.length}</div>
+      ${miniGrid(m.mine, 'You have not posted yet.')}
+      <button class="btn-outline" data-logout>Switch user</button>
+    </main>`;
+  }
+
+  function viewDetail() {
+    const n = state.detail;
+    const has = n.worth !== null;
+    const mineNote = n.author === state.user;
+    const hero = n.photos.length > 1
+      ? `<div class="hero-strip">${n.photos.map((p) => `<div style="background-image:url('${esc(p)}')" role="img" aria-label="Photo"></div>`).join('')}</div>`
+      : '';
+    return `<div class="detail" role="dialog" aria-modal="true" aria-label="${esc(n.title)}">
+      <div class="detail-inner">
+        <div class="hero" style="${n.photos.length > 1 ? `background:${tint(n)}` : bgStyle(n)}">
+          ${hero}
+          <button class="back" data-close aria-label="Back">${icon.back}</button>
+        </div>
+        <div class="detail-body">
+          <div class="author-row">
+            <span class="who"><span class="dot" style="background:${nameTint(n.author)}"></span>${esc(n.author)}</span>
+            ${mineNote ? '' : `<button class="btn-outline" data-follow="${esc(n.author)}" aria-pressed="${n.following}">${n.following ? 'Following' : 'Follow'}</button>`}
+          </div>
+          <h2 class="d-title">${esc(n.title)}</h2>
+          ${has ? `<div class="verdict-box"><span class="pill ${n.worth ? 'yes' : 'no'}">${verdictLabel(n)}</span><span style="font-size:15px;font-weight:600">${esc(meta(n))}</span></div>`
+            : n.place ? `<div class="place">${icon.pin}${esc(n.place)}</div>` : ''}
+          ${n.body ? `<div class="d-text">${esc(n.body)}</div>` : ''}
+          ${has ? `<div class="agree-box">
+            <div style="font-size:15px;font-weight:600">Do you agree?</div>
+            <div class="bar"><div style="width:${n.pct}%"></div></div>
+            <div class="sub" style="font-size:13px">${n.total ? `${n.pct}% of ${n.total} people agree` : 'No votes yet'}</div>
+            <div class="two">
+              <button class="vote-btn" data-vote="1" aria-pressed="${n.myVote === 1}">Agree</button>
+              <button class="vote-btn" data-vote="-1" aria-pressed="${n.myVote === -1}">Disagree</button>
+            </div>
+          </div>` : ''}
+          <div>
+            <div class="label-caps" style="margin-top:8px">Questions · ${n.questions.length}</div>
+            ${n.questions.length
+              ? n.questions.map((q) => `<div class="q"><b>${esc(q.author)}</b>${esc(q.text)}</div>`).join('')
+              : `<div class="sub" style="font-size:14px;padding:12px 0">No questions yet. Ask ${esc(n.author)} below.</div>`}
+          </div>
+        </div>
+      </div>
+      <div class="ask"><form data-form="ask">
+        <label><input name="q" aria-label="Ask the author" maxlength="500" placeholder="Ask the author…" autocomplete="off"></label>
+        <button type="submit" class="icon-btn" aria-label="Send question">${icon.send}</button>
+        <button type="button" class="icon-btn" data-like-detail aria-label="Like" aria-pressed="${n.liked}">${icon.heart(n.liked ? 'currentColor' : 'none', 23)}</button>
+        <button type="button" class="icon-btn" data-save aria-label="Save" aria-pressed="${n.saved}">${icon.bookmark(n.saved ? 'currentColor' : 'none')}</button>
+      </form></div>
+    </div>`;
+  }
+
+  function viewTabs() {
+    const t = (k, label, svg) => `<button data-tab="${k}" aria-label="${label}" ${state.tab === k ? 'aria-current="page"' : ''}>${svg}</button>`;
+    return `<div class="tabs"><nav aria-label="Main">
+      ${t('home', 'Home', icon.home)}
+      ${t('search', 'Search', icon.search())}
+      <button class="new" data-tab="post" aria-label="New note">${icon.plus()}</button>
+      ${t('me', 'Profile', icon.user)}
+    </nav></div>`;
+  }
+
+  function render() {
+    if (!state.user) { $app.innerHTML = viewWelcome(); return; }
+    const screen = { home: viewHome, search: viewSearch, post: viewPost, me: viewMe }[state.tab]();
+    $app.innerHTML = screen + (state.tab !== 'post' ? viewTabs() : '') + (state.detail ? viewDetail() : '');
+    document.body.style.overflow = state.detail ? 'hidden' : '';
+  }
+
+  // ---------- 动作 ----------
+  async function go(tab) {
+    state.tab = tab;
+    state.detail = null;
+    render();
+    window.scrollTo(0, 0);
+    try {
+      if (tab === 'home' || tab === 'search') await loadNotes();
+      if (tab === 'me') await loadMe();
+      render();
+    } catch (e) { toast(e.message); }
+  }
+
+  async function openNote(id) {
+    try {
+      state.detail = await api('/api/notes/' + id);
+      render();
+      history.pushState({ note: id }, '');
+    } catch (e) { toast(e.message); }
+  }
+
+  function closeNote() {
+    state.detail = null;
+    render();
+  }
+
+  async function act(path, body) {
+    try {
+      const n = await api(path, { method: 'POST', body: body || {} });
+      replaceNote(n);
+      render();
+      return n;
+    } catch (e) { toast(e.message); }
+  }
+
+  // 把选的照片缩小到最长边 1280px 再上传，省流量
+  function shrink(file) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const scale = Math.min(1, 1280 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * scale);
+        c.height = Math.round(img.height * scale);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        URL.revokeObjectURL(url);
+        resolve(c.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Could not read that photo')); };
+      img.src = url;
+    });
+  }
+
+  let searchTimer;
+  $app.addEventListener('input', (e) => {
+    const el = e.target;
+    if (el.dataset.draft) state.draft[el.dataset.draft] = el.value;
+    if (el.dataset.input === 'query') {
+      state.query = el.value;
+      clearTimeout(searchTimer);
+      searchTimer = setTimeout(async () => {
+        try {
+          await loadNotes();
+          const box = $app.querySelector('[data-results]');
+          const lbl = $app.querySelector('[data-results-label]');
+          if (box) box.innerHTML = resultRows();
+          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Popular on campus';
+        } catch (err) { toast(err.message); }
+      }, 200);
+    }
+  });
+
+  $app.addEventListener('change', async (e) => {
+    if (!e.target.matches('[data-photos]')) return;
+    const files = [...e.target.files].slice(0, 4 - state.draft.photos.length);
+    try {
+      for (const f of files) state.draft.photos.push(await shrink(f));
+    } catch (err) { toast(err.message); }
+    render();
+  });
+
+  $app.addEventListener('click', async (e) => {
+    const el = e.target.closest('button');
+    if (!el) return;
+    const d = el.dataset;
+    if (d.tab) return go(d.tab);
+    if (d.open) return openNote(Number(d.open));
+    if ('close' in d) return history.back();
+    if (d.filter) { state.filter = d.filter; return go('home'); }
+    if (d.chip) {
+      state.query = d.chip;
+      render();
+      try { await loadNotes(); render(); } catch (err) { toast(err.message); }
+      return;
+    }
+    if (d.agree) {
+      const n = state.notes.find((x) => x.id === Number(d.agree));
+      return act(`/api/notes/${d.agree}/vote`, { value: n && n.myVote === 1 ? 0 : 1 });
+    }
+    if (d.like) return act(`/api/notes/${d.like}/like`);
+    if (d.vote) {
+      const v = Number(d.vote);
+      return act(`/api/notes/${state.detail.id}/vote`, { value: state.detail.myVote === v ? 0 : v });
+    }
+    if ('likeDetail' in d) return act(`/api/notes/${state.detail.id}/like`);
+    if ('save' in d) {
+      const n = await act(`/api/notes/${state.detail.id}/save`);
+      if (n) toast(n.saved ? 'Saved to your profile' : 'Removed from saved');
+      return;
+    }
+    if (d.follow) {
+      try {
+        const r = await api(`/api/users/${encodeURIComponent(d.follow)}/follow`, { method: 'POST' });
+        state.detail.following = r.following;
+        state.notes.forEach((n) => { if (n.author === d.follow) n.following = r.following; });
+        render();
+      } catch (err) { toast(err.message); }
+      return;
+    }
+    if (d.worth) {
+      const want = d.worth === 'yes';
+      state.draft.worth = state.draft.worth === want ? null : want;
+      return render();
+    }
+    if (d.rmPhoto) { state.draft.photos.splice(Number(d.rmPhoto), 1); return render(); }
+    if ('cancel' in d) {
+      const dr = state.draft;
+      if ((dr.title || dr.body || dr.photos.length) && !confirm('Discard this note?')) return;
+      state.draft = emptyDraft();
+      return go('home');
+    }
+    if ('logout' in d) {
+      localStorage.removeItem('trove.user');
+      state.user = '';
+      state.me = null;
+      return render();
+    }
+  });
+
+  $app.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const kind = form.dataset.form;
+
+    if (kind === 'welcome') {
+      const name = form.elements.name.value.trim().toLowerCase();
+      if (!/^[a-z0-9._]{2,20}$/.test(name)) {
+        form.querySelector('[data-err]').textContent = '2–20 characters: lowercase letters, numbers, . or _';
+        return;
+      }
+      state.user = name;
+      localStorage.setItem('trove.user', name);
+      return go('home');
+    }
+
+    if (kind === 'post') {
+      if (state.busy) return;
+      if (!state.draft.title.trim()) { toast('Add a title first'); return; }
+      state.busy = true;
+      render();
+      try {
+        await api('/api/notes', { method: 'POST', body: state.draft });
+        state.draft = emptyDraft();
+        state.filter = 'all';
+        state.busy = false;
+        toast('Posted');
+        return go('home');
+      } catch (err) {
+        state.busy = false;
+        render();
+        toast(err.message);
+      }
+    }
+
+    if (kind === 'ask') {
+      const text = form.elements.q.value.trim();
+      if (!text) return;
+      const n = await act(`/api/notes/${state.detail.id}/questions`, { text });
+      if (n) toast('Question sent');
+    }
+  });
+
+  // 手机上的“返回”手势关闭详情页
+  window.addEventListener('popstate', () => { if (state.detail) closeNote(); });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && state.detail) history.back();
+  });
+
+  if (state.user) go('home'); else render();
+})();
