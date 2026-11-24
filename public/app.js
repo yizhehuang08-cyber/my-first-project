@@ -228,12 +228,12 @@
         <button type="button" data-method="phone" aria-pressed="${!isEmail}">Phone</button>
       </div>
       <label class="field">Username
-        <span class="at"><span aria-hidden="true">@</span><input data-af="username" value="${esc(f.username)}" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="ryan.h" required></span>
+        <span class="at"><span aria-hidden="true">@</span><input data-af="username" value="${esc(f.username)}" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="your.name" required></span>
         <span class="hint">2–20 characters: lowercase letters, numbers, . or _</span>
       </label>
       ${isEmail
-        ? `<label class="field">Email<input type="email" data-af="email" value="${esc(f.email)}" autocomplete="email" autocapitalize="none" placeholder="you@illinois.edu" required></label>`
-        : `<label class="field">Phone number<input type="tel" data-af="phone" value="${esc(f.phone)}" autocomplete="tel" placeholder="+1 217 555 0123" required></label>`}
+        ? `<label class="field">Email<input type="email" data-af="email" value="${esc(f.email)}" autocomplete="email" autocapitalize="none" placeholder="e.g. you@illinois.edu" required></label>`
+        : `<label class="field">Phone number<input type="tel" data-af="phone" value="${esc(f.phone)}" autocomplete="tel" placeholder="e.g. +1 217 555 0123" required></label>`}
       ${passwordField('password', 'Password', 'new-password', f.password)}
       <span class="hint" style="margin-top:-14px">At least 8 characters</span>
       ${state.authError ? errBox(state.authError) : ''}
@@ -862,7 +862,8 @@
       if (state.busy) return;
       let body;
       if (kind === 'signup') {
-        const username = f.username.trim().toLowerCase();
+        const username = f.username.trim().toLowerCase().replace(/^@/, '');
+        if (!username) { state.authError = 'Choose a username'; return renderKeepFocus(); }
         if (!/^[a-z0-9._]{2,20}$/.test(username)) { state.authError = 'Username: 2–20 characters, lowercase letters, numbers, . or _'; return renderKeepFocus(); }
         if (state.authMethod === 'email' && !f.email.trim()) { state.authError = 'Enter your email'; return renderKeepFocus(); }
         if (state.authMethod === 'phone' && !f.phone.trim()) { state.authError = 'Enter your phone number'; return renderKeepFocus(); }
