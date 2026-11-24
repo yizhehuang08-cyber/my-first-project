@@ -3,7 +3,7 @@ services:
   - type: web
     name: trove
     runtime: node
-    plan: free
+    plan: starter  # 付费版：不休眠。想先免费试用可以改成 free
     region: ohio
     buildCommand: npm ci --omit=dev
     startCommand: npm start
