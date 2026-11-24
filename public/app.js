@@ -27,6 +27,8 @@
     tab: 'home', // home | search | post | me | account
     filter: 'all',
     query: '',
+    tags: [], // 热门话题
+    photoIdx: 0, // 详情页正在看第几张照片
     notes: [],
     me: null,
     unread: 0, // 未读通知数
@@ -56,6 +58,23 @@
   const verdictLabel = (n) => n.worth === true ? 'Worth it' : n.worth === false ? 'Not worth it' : '';
   const meta = (n) => [n.price, n.place].filter(Boolean).join(' · ');
   const me = () => (state.account ? state.account.username : '');
+
+  // 常用话题：还没有人发帖时，搜索页和发帖页先推荐这些
+  const SUGGESTED_TAGS = ['uiuc二手', 'uiuc转租', 'uiuc美食', 'uiuc租房', '毕业出二手', 'uiuc出ride'];
+  const TAG_RE = /#([\p{L}\p{N}_]{1,30})/gu;
+  // 把文字里的 #话题 变成可以点的链接（先切开再分别转义，避免把 &#39; 之类当成话题）
+  function withTags(text) {
+    let out = '';
+    let last = 0;
+    for (const m of String(text || '').matchAll(TAG_RE)) {
+      if (!/\p{L}/u.test(m[1])) continue;
+      out += esc(text.slice(last, m.index)) + `<button class="tag" data-tag="${esc(m[1].toLowerCase())}">#${esc(m[1])}</button>`;
+      last = m.index + m[0].length;
+    }
+    return out + esc(String(text || '').slice(last));
+  }
+  // 热门话题在前，不够再补推荐的
+  const topicList = () => [...new Set([...state.tags.map((t) => t.tag), ...SUGGESTED_TAGS])].slice(0, 12);
   const ago = (iso) => {
     const s = (Date.now() - Date.parse(iso)) / 1000;
     if (s < 60) return 'now';
@@ -301,7 +320,7 @@
   function resultRows() {
     if (!state.notes.length) return `<div class="empty">${state.query.trim() ? 'Nothing matches yet. Try another word, or post the first note about it.' : 'No notes yet. Tap + to post the first one.'}</div>`;
     return state.notes.map((n) => {
-      const m = n.worth !== null ? `${verdictLabel(n)} · ${n.pct}% agree` : `Shared${n.place ? ' · ' + esc(n.place) : ''}`;
+      const m = n.worth !== null ? `${verdictLabel(n)} · ${n.total ? n.pct + '% agree' : 'no votes yet'}` : `Shared${n.place ? ' · ' + esc(n.place) : ''}`;
       return `<button class="row" data-open="${n.id}">
         <div class="row-thumb" style="${bgStyle(n)}"></div>
         <div style="min-width:0"><div class="row-title">${esc(n.title)}</div><div class="row-meta">${m}</div></div>
@@ -309,14 +328,24 @@
     }).join('');
   }
 
+  function resultsLabel() {
+    const q = state.query.trim();
+    if (!q) return 'Latest';
+    if (/^#[^\s#]+$/u.test(q)) return `${esc(q)} · ${state.notes.length} note${state.notes.length === 1 ? '' : 's'}`;
+    return 'Results';
+  }
+
   function viewSearch() {
-    const chips = { Dorm: 'dorm', Food: 'food', Travel: 'travel', Winter: 'winter', Shopping: 'shop' };
+    const counts = new Map(state.tags.map((t) => [t.tag, t.count]));
+    const q = state.query.trim();
+    const isTag = /^#[^\s#]+$/u.test(q);
     return `<main class="screen">
       <label class="search">${icon.search(18)}
         <input type="search" data-input="query" value="${esc(state.query)}" aria-label="Search notes" placeholder="Is it worth it?">
       </label>
-      <div class="chips">${Object.entries(chips).map(([l, q]) => `<button data-chip="${esc(q)}">${l}</button>`).join('')}</div>
-      <div class="label-caps" data-results-label>${state.query.trim() ? 'Results' : 'Latest'}</div>
+      <div class="label-caps" style="margin-bottom:10px">Topics</div>
+      <div class="chips">${topicList().map((t) => `<button class="topic${q.toLowerCase() === '#' + t ? ' on' : ''}" data-chip="#${esc(t)}">#${esc(t)}${counts.get(t) ? `<span class="n">${counts.get(t)}</span>` : ''}</button>`).join('')}</div>
+      <div class="label-caps" data-results-label>${resultsLabel()}</div>
       <div data-results>${resultRows()}</div>
     </main>`;
   }
@@ -339,8 +368,15 @@
         <input class="big" data-draft="title" value="${esc(d.title)}" maxlength="120" placeholder="What do you want to share?">
       </label>
       <label class="field">Your story
-        <textarea rows="5" data-draft="body" maxlength="5000" placeholder="A moment, a find, a tip. Anything worth sharing.">${esc(d.body)}</textarea>
+        <textarea rows="5" data-draft="body" maxlength="5000" placeholder="A moment, a find, a tip. Anything worth sharing. Add topics like #uiuc二手">${esc(d.body)}</textarea>
       </label>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div class="sub" style="font-size:13px">Add topics <span style="opacity:.8">· tap to add, or type #topic in your story</span></div>
+        <div class="chips" style="margin:0">${topicList().map((t) => {
+          const on = new RegExp('#' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{N}_])', 'iu').test(d.title + ' ' + d.body);
+          return `<button type="button" class="topic${on ? ' on' : ''}" data-add-tag="${esc(t)}" aria-pressed="${on}">#${esc(t)}</button>`;
+        }).join('')}</div>
+      </div>
       <div style="display:flex;flex-direction:column;gap:10px">
         <div class="sub" style="font-size:13px">Add a verdict <span style="opacity:.8">· optional</span></div>
         <div class="two" role="group" aria-label="Your verdict">
@@ -529,14 +565,20 @@
     const n = state.detail;
     const has = n.worth !== null;
     const mine = n.author === me();
-    const hero = n.photos.length > 1
-      ? `<div class="hero-strip">${n.photos.map((p) => `<div style="background-image:url('${esc(p)}')" role="img" aria-label="Photo"></div>`).join('')}</div>`
+    const many = n.photos.length > 1;
+    const idx = Math.min(state.photoIdx, n.photos.length - 1);
+    const hero = many
+      ? `<div class="hero-strip" data-strip tabindex="0" aria-label="Photos, swipe to see more">${n.photos.map((p, i) => `<div style="background-image:url('${esc(p)}')" role="img" aria-label="Photo ${i + 1} of ${n.photos.length}"></div>`).join('')}</div>
+        <span class="counter" data-counter aria-live="polite">${idx + 1}/${n.photos.length}</span>
+        <button class="nav prev" data-photo-step="-1" aria-label="Previous photo">${icon.back}</button>
+        <button class="nav next" data-photo-step="1" aria-label="Next photo">${icon.back}</button>
+        <div class="dots" aria-hidden="true">${n.photos.map((_, i) => `<span class="${i === idx ? 'on' : ''}"></span>`).join('')}</div>`
       : '';
     const th = threads(n.questions);
     const placeholder = state.replyTo ? `Reply to @${state.replyTo.author}…` : mine ? 'Add a comment…' : 'Ask the author…';
     return `<div class="detail" role="dialog" aria-modal="true" aria-label="${esc(n.title)}">
       <div class="detail-inner">
-        <div class="hero" style="${n.photos.length > 1 ? `background:${tint(n)}` : bgStyle(n)}">
+        <div class="hero${n.photos.length ? ' has-photo' : ''}" style="${many ? `background-color:${tint(n)}` : bgStyle(n)}">
           ${hero}
           <button class="back" data-close aria-label="Back">${icon.back}</button>
         </div>
@@ -545,10 +587,10 @@
             <span class="who"><span class="dot" style="background:${nameTint(n.author)}"></span>${esc(n.author)}</span>
             ${mine ? '' : `<button class="btn-outline" data-follow="${esc(n.author)}" aria-pressed="${n.following}">${n.following ? 'Following' : 'Follow'}</button>`}
           </div>
-          <h2 class="d-title">${esc(n.title)}</h2>
+          <h2 class="d-title">${withTags(n.title)}</h2>
           ${has ? `<div class="verdict-box"><span class="pill ${n.worth ? 'yes' : 'no'}">${verdictLabel(n)}</span><span style="font-size:15px;font-weight:600">${esc(meta(n))}</span></div>`
             : n.place ? `<div class="place">${icon.pin}${esc(n.place)}</div>` : ''}
-          ${n.body ? `<div class="d-text">${esc(n.body)}</div>` : ''}
+          ${n.body ? `<div class="d-text">${withTags(n.body)}</div>` : ''}
           ${has ? `<div class="agree-box">
             <div style="font-size:15px;font-weight:600">Do you agree?</div>
             <div class="bar"><div style="width:${n.pct}%"></div></div>
@@ -604,7 +646,30 @@
       + (state.detail ? viewDetail() : '')
       + (state.sheet ? viewSheet() : '');
     document.body.style.overflow = state.detail || state.sheet ? 'hidden' : '';
+    // 重新渲染后，照片停在刚才看的那张
+    const strip = $app.querySelector('[data-strip]');
+    if (strip && state.photoIdx) strip.scrollLeft = state.photoIdx * strip.clientWidth;
   }
+
+  // ---------- 照片轮播 ----------
+  function showPhoto(i) {
+    const strip = $app.querySelector('[data-strip]');
+    if (!strip) return;
+    const n = strip.children.length;
+    const target = Math.max(0, Math.min(n - 1, i));
+    strip.scrollTo({ left: target * strip.clientWidth, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  }
+  // 滑动时更新 "2/11" 和小圆点（不重新渲染整页，滑起来才顺）
+  $app.addEventListener('scroll', (e) => {
+    if (!e.target.matches || !e.target.matches('[data-strip]')) return;
+    const strip = e.target;
+    const i = Math.round(strip.scrollLeft / strip.clientWidth);
+    if (i === state.photoIdx) return;
+    state.photoIdx = i;
+    const c = $app.querySelector('[data-counter]');
+    if (c) c.textContent = `${i + 1}/${strip.children.length}`;
+    $app.querySelectorAll('.hero .dots span').forEach((d, k) => d.classList.toggle('on', k === i));
+  }, true);
 
   // 重新渲染后把光标放回原来的输入框
   function renderKeepFocus() {
@@ -623,6 +688,7 @@
     window.scrollTo(0, 0);
     try {
       if (tab === 'home' || tab === 'search') await loadNotes();
+      if (tab === 'search' || tab === 'post') state.tags = await api('/api/tags');
       if (tab === 'me' || tab === 'account') { await loadMe(); state.unread = state.me.unread; }
       if (tab === 'inbox') {
         state.inbox = null;
@@ -639,6 +705,7 @@
   async function openNote(id, commentId) {
     try {
       state.detail = await api('/api/notes/' + id);
+      state.photoIdx = 0;
       state.replyTo = null;
       state.askText = '';
       render();
@@ -747,7 +814,7 @@
           const box = $app.querySelector('[data-results]');
           const lbl = $app.querySelector('[data-results-label]');
           if (box) box.innerHTML = resultRows();
-          if (lbl) lbl.textContent = state.query.trim() ? 'Results' : 'Latest';
+          if (lbl) lbl.innerHTML = resultsLabel();
         } catch (err) { toast(err.message); }
       }, 200);
     }
@@ -786,8 +853,24 @@
     if (d.notif) return openNote(Number(d.notif), Number(d.comment));
     if ('close' in d) return leaveDetail();
     if (d.filter) { state.filter = d.filter; return go('home'); }
+    if (d.tag) {
+      // 点帖子里的 #话题：关掉详情，去搜索页看这个话题的所有帖子
+      if (state.detail) { if (pushed) { pushed = false; history.back(); } state.detail = null; }
+      state.query = '#' + d.tag;
+      return go('search');
+    }
+    if (d.photoStep) return showPhoto(state.photoIdx + Number(d.photoStep));
+    if (d.addTag) {
+      const t = '#' + d.addTag;
+      const dr = state.draft;
+      const re = new RegExp(t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?![\\p{L}\\p{N}_])', 'iu');
+      if (re.test(dr.body)) dr.body = dr.body.replace(re, '').replace(/[ \t]{2,}/g, ' ').trim();
+      else dr.body = (dr.body.trim() + ' ' + t).trim();
+      return render();
+    }
     if (d.chip) {
-      state.query = d.chip;
+      // 再点一次已选中的话题 = 取消
+      state.query = state.query.trim().toLowerCase() === d.chip.toLowerCase() ? '' : d.chip;
       render();
       try { await loadNotes(); render(); } catch (err) { toast(err.message); }
       return;
@@ -928,6 +1011,10 @@
   window.addEventListener('popstate', () => { pushed = false; if (state.detail) closeNote(); });
 
   document.addEventListener('keydown', (e) => {
+    if (state.detail && (e.key === 'ArrowLeft' || e.key === 'ArrowRight') && !/INPUT|TEXTAREA/.test(document.activeElement.tagName)) {
+      showPhoto(state.photoIdx + (e.key === 'ArrowRight' ? 1 : -1));
+      return;
+    }
     if (e.key !== 'Escape') return;
     if (state.sheet) { state.sheet = null; render(); } else if (state.detail) leaveDetail();
   });

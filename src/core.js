@@ -15,6 +15,20 @@
   const LOCK_MS = 15 * 60 * 1000;
   const MIN_PASSWORD = 8;
 
+  // 话题标签：标题或正文里的 #xxx（支持中文），比如 #uiuc二手、#uiuc转租
+  const TAG_RE = /#([\p{L}\p{N}_]{1,30})/gu;
+  function tagsOf(...texts) {
+    const out = [];
+    for (const t of texts) {
+      for (const m of String(t || '').matchAll(TAG_RE)) {
+        const tag = m[1].toLowerCase();
+        if (!/\p{L}/u.test(tag)) continue; // 纯数字（比如 "#1"）不算话题
+        if (!out.includes(tag)) out.push(tag);
+      }
+    }
+    return out.slice(0, 10);
+  }
+
   class HttpError extends Error {
     constructor(status, message) { super(message); this.status = status; }
   }
@@ -199,6 +213,7 @@
       const total = agree + disagree;
       return {
         id: note.id, author: note.author, title: note.title, body: note.body, worth: note.worth,
+        tags: tagsOf(note.title, note.body),
         place: note.place, price: note.price, photos: note.photos, tint: note.tint,
         agree, disagree, total, pct: total ? Math.round((agree * 100) / total) : 0,
         likes: note.baseLikes + note.likes.length,
@@ -315,12 +330,24 @@
       // ----- 帖子 -----
       if (key === 'GET /api/notes') {
         const filter = u.searchParams.get('filter') || 'all';
-        const q = (u.searchParams.get('q') || '').trim().toLowerCase();
+        let q = (u.searchParams.get('q') || '').trim().toLowerCase();
+        // 按话题筛选：?tag=uiuc二手，或者直接搜 "#uiuc二手"
+        let tag = (u.searchParams.get('tag') || '').trim().toLowerCase().replace(/^#/, '');
+        if (!tag && /^#[^\s#]+$/u.test(q)) { tag = q.slice(1); q = ''; }
         let notes = sorted();
         if (filter === 'yes') notes = notes.filter((n) => n.worth === true);
         if (filter === 'no') notes = notes.filter((n) => n.worth === false);
+        if (tag) notes = notes.filter((n) => tagsOf(n.title, n.body).includes(tag));
         if (q) notes = notes.filter((n) => [n.title, n.body, n.place, n.author].join(' ').toLowerCase().includes(q));
         return ok(notes.map((n) => view(n, me)));
+      }
+
+      // 热门话题：按帖子数量排序，最多 20 个
+      if (key === 'GET /api/tags') {
+        const counts = new Map();
+        for (const n of db.notes) for (const t of tagsOf(n.title, n.body)) counts.set(t, (counts.get(t) || 0) + 1);
+        const tags = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 20).map(([tag, count]) => ({ tag, count }));
+        return ok(tags);
       }
 
       if (key === 'GET /api/notifications') {
@@ -428,5 +455,5 @@
     return { handle, userFromToken, googleSignIn, linkGoogle, account };
   }
 
-  return { createCore, HttpError, upgrade, NAME_RE };
+  return { createCore, HttpError, upgrade, NAME_RE, tagsOf };
 });

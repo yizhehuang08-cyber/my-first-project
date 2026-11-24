@@ -350,3 +350,23 @@ test('old sample posts are removed once, real users and posts are kept', async (
   createApp({ store: store2 });
   assert.strictEqual(store2.data.notes.length, 2);
 });
+
+// ---------- 话题标签 ----------
+test('hashtags: parsed from title and body, filter by tag, popular tags', async () => {
+  const t = (await signup({ username: 'tagger', email: 'tag@y.com', password: '12345678' })).data.token;
+  const a = (await call('POST', '/api/notes', { token: t, body: { title: 'IKEA desk #uiuc二手', body: '九成新，自提 #UIUC二手 #毕业出二手 #1' } })).data;
+  const b = (await call('POST', '/api/notes', { token: t, body: { title: 'Dean studio 寒假转租', body: '#uiuc转租#uiuc租房，可议！' } })).data;
+  await call('POST', '/api/notes', { token: t, body: { title: 'Lamp', body: '#uiuc二手车 不是 uiuc二手' } });
+
+  assert.deepStrictEqual(a.tags, ['uiuc二手', '毕业出二手'], 'case-insensitive, de-duplicated, numbers ignored');
+  assert.deepStrictEqual(b.tags, ['uiuc转租', 'uiuc租房'], 'tags can touch each other and stop at punctuation');
+
+  const byParam = (await call('GET', '/api/notes?tag=' + encodeURIComponent('uiuc二手'))).data;
+  assert.deepStrictEqual(byParam.map((n) => n.id), [a.id], '#uiuc二手车 is a different tag');
+  const bySearch = (await call('GET', '/api/notes?q=' + encodeURIComponent('#UIUC转租'))).data;
+  assert.deepStrictEqual(bySearch.map((n) => n.id), [b.id]);
+
+  const tags = (await call('GET', '/api/tags')).data;
+  assert.deepStrictEqual(tags.find((x) => x.tag === 'uiuc二手'), { tag: 'uiuc二手', count: 1 });
+  assert.ok(tags.some((x) => x.tag === 'uiuc二手车'));
+});

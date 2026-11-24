@@ -9,6 +9,8 @@
 - **账号设置**（我的 → 齿轮 / Account & sign-in）：添加或修改邮箱、手机号，修改或设置密码，关联 / 解除 Google，退出登录
 - **评论回复**：在帖子下提问；点任何一条评论就能回复它，回复会挂在那条评论下面，作者的回复带 "Author" 标记
 - **通知**：有人回复你的评论、或在你的帖子下提问时，"我的"图标出现红点，"我的 → Notifications"里能看到；点一条通知直接打开原帖并定位、高亮那条评论
+- **话题标签**：标题或正文里写 `#uiuc二手` 这样的话题（支持中文），会变成可以点的链接；搜索页显示热门话题，发帖页可以一键添加常用话题
+- **多张照片**：帖子详情里左右滑动看照片，右上角显示 "1/3"，下方有小圆点；电脑上可以点箭头或按 ← → 键
 - **首页**：双列瀑布流，可按 全部 / Worth it / Not worth it 筛选；直接在卡片上点同意（有结论的帖子）或点赞（纯分享帖）
 - **搜索**：按标题、内容、地点、作者搜索，带快捷分类（Dorm、Food、Travel…）
 - **发帖**：最多 4 张照片（自动压缩）、标题、正文、可选结论、地点、价格
@@ -77,7 +79,8 @@ test/              接口测试
 | PATCH | `/api/account` | `{email?, phone?, currentPassword}` 修改邮箱 / 手机号（传 null 删除） |
 | POST | `/api/account/password` | `{currentPassword, newPassword}` 改密码 |
 | DELETE | `/api/account/google` | 解除 Google |
-| GET | `/api/notes?filter=all\|yes\|no&q=` | 帖子列表 |
+| GET | `/api/notes?filter=all\|yes\|no&q=&tag=` | 帖子列表（`tag` 或 `q=#话题` 按话题筛选） |
+| GET | `/api/tags` | 热门话题和帖子数 |
 | GET | `/api/notes/:id` | 单条帖子 |
 | POST | `/api/notes` | 发帖 |
 | POST | `/api/notes/:id/vote` | `{value: 1 \| -1 \| 0}` 同意 / 不同意 / 取消 |

@@ -215,3 +215,29 @@ main.auth { justify-content: space-between; }
 :root { --alert: #D7261E; --flash: #FFF1B8; }
 @media (prefers-color-scheme: dark) { :root { --alert: #FF453A; --flash: #4A3F12; } }
 @media (prefers-reduced-motion: reduce) { .cmt.flash { animation: none; background: var(--field); } }
+
+/* 话题 */
+.tag { color: var(--link); font-weight: 600; display: inline; padding: 0; min-height: 0; }
+.tag:active { transform: none; opacity: .6; }
+.chips .topic { display: inline-flex; align-items: center; gap: 6px; }
+.chips .topic.on { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.chips .topic .n { font-size: 12px; color: var(--sub); font-weight: 600; }
+.chips .topic.on .n { color: inherit; opacity: .7; }
+:root { --link: #1F57C3; }
+@media (prefers-color-scheme: dark) { :root { --link: #7AA7FF; } }
+
+/* 照片：完整显示，不裁切；多张时左右滑 */
+.hero.has-photo { background-size: contain; background-repeat: no-repeat; }
+.hero-strip { scrollbar-width: none; }
+.hero-strip::-webkit-scrollbar { display: none; }
+.hero-strip div { background-size: contain; background-repeat: no-repeat; min-width: 0; }
+.hero .counter { position: absolute; top: calc(22px + var(--safe-top)); right: 16px; padding: 4px 10px; border-radius: 12px; background: rgba(0,0,0,.55); color: #fff; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.hero .nav { position: absolute; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border-radius: 22px; background: rgba(0,0,0,.4); color: #fff; display: flex; align-items: center; justify-content: center; }
+.hero .nav:active { transform: translateY(-50%) scale(.94); }
+.hero .nav.prev { left: 12px; }
+.hero .nav.next { right: 12px; }
+.hero .nav.next svg { transform: rotate(180deg); }
+@media (hover: none) { .hero .nav { display: none; } }
+.hero .dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; gap: 5px; pointer-events: none; }
+.hero .dots span { width: 6px; height: 6px; border-radius: 50%; background: rgba(255,255,255,.55); box-shadow: 0 0 2px rgba(0,0,0,.4); transition: background .2s, width .2s; }
+.hero .dots span.on { background: #fff; width: 14px; border-radius: 3px; }
