@@ -43,7 +43,7 @@ svg { display: block; }
 .top { display: flex; align-items: baseline; justify-content: space-between; margin: 8px 0 16px; }
 .logo { font-size: 26px; font-weight: 700; letter-spacing: -.5px; }
 .seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 3px; border-radius: 12px; background: var(--field); margin-bottom: 18px; }
-.seg button { height: 34px; border-radius: 9px; font-size: 13px; font-weight: 600; text-align: center; color: var(--sub); }
+.seg button { text-align: center; height: 34px; border-radius: 9px; font-size: 13px; font-weight: 600; text-align: center; color: var(--sub); }
 .seg button[aria-pressed="true"] { background: var(--card); color: var(--fg); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
 .feed { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; align-items: start; }
 .col { display: flex; flex-direction: column; gap: 20px; }
@@ -133,15 +133,75 @@ svg { display: block; }
 .tabs button[aria-current="page"] { color: var(--fg); }
 .tabs .new { width: 52px; height: 40px; border-radius: 12px; background: var(--fg); color: var(--bg); }
 
-/* 欢迎页 */
-.welcome { min-height: 100vh; display: flex; flex-direction: column; justify-content: center; gap: 20px; padding: 32px 24px; }
-.welcome h1 { font-size: 40px; font-weight: 700; letter-spacing: -1px; margin: 0; }
-.welcome p { font-size: 17px; line-height: 1.5; margin: 0; color: var(--sub); }
-.welcome .btn-primary { height: 52px; border-radius: 14px; font-size: 16px; text-align: center; }
-.err { color: #C4321F; font-size: 14px; min-height: 20px; }
-@media (prefers-color-scheme: dark) { .err { color: #FF8A75; } }
+/* 注册 / 登录 */
+.auth { max-width: 420px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; gap: 20px; padding: calc(24px + var(--safe-top)) 24px calc(32px + var(--safe-bottom)); }
+main.auth { justify-content: space-between; }
+.auth-hero { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 16px; padding-top: 48px; }
+.auth-logo { font-size: 56px; font-weight: 700; letter-spacing: -2px; }
+.auth-hero p { font-size: 18px; line-height: 1.5; margin: 0; color: var(--sub); max-width: 22em; }
+.auth-actions { display: flex; flex-direction: column; gap: 12px; }
+.auth-title { font-size: 30px; font-weight: 700; letter-spacing: -.6px; margin: 4px 0 0; }
+.auth .seg { margin: 0; }
+.back-plain { width: 44px; height: 44px; margin-left: -10px; display: flex; align-items: center; justify-content: center; }
+.btn-social { height: 52px; border-radius: 14px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: center; gap: 10px; font-size: 16px; font-weight: 600; }
+.btn-big { height: 52px; border-radius: 14px; background: var(--fg); color: var(--bg); font-size: 16px; font-weight: 600; text-align: center; width: 100%; }
+.btn-big.ghost { background: transparent; color: var(--fg); }
+.btn-big.danger-outline { background: transparent; color: var(--danger); border: 1px solid var(--line); }
+.auth-switch { text-align: center; font-size: 15px; color: var(--sub); margin: 4px 0 0; }
+.link { color: var(--fg); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; min-height: 44px; }
+.or { display: flex; align-items: center; gap: 12px; color: var(--sub); font-size: 13px; }
+.or::before, .or::after { content: ""; flex: 1; height: 1px; background: var(--line); }
+.hint { font-size: 12px; color: var(--sub); }
+.at { display: flex; align-items: center; border-bottom: 1px solid var(--line); font-size: 16px; color: var(--sub); }
+.at input { flex: 1; border: 0 !important; }
+.pw { display: flex; align-items: center; border-bottom: 1px solid var(--line); }
+.pw input { flex: 1; border: 0 !important; }
+.pw-eye { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: var(--sub); }
+.err { color: var(--danger); font-size: 14px; line-height: 1.4; }
+:root { --danger: #C4321F; }
+@media (prefers-color-scheme: dark) { :root { --danger: #FF8A75; } }
 
-.toast { position: fixed; left: 50%; bottom: calc(96px + var(--safe-bottom)); transform: translateX(-50%) translateY(20px); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: 90vw; }
+/* 我的 / 账号设置 */
+.me-top { display: flex; justify-content: flex-end; margin: -8px -10px -24px 0; }
+.row-link { display: flex; align-items: center; gap: 12px; width: 100%; padding: 14px 16px; border-radius: 14px; background: var(--field); font-size: 15px; font-weight: 600; }
+.row-link .sub { margin-left: auto; font-size: 13px; font-weight: 400; }
+.bar-head { display: flex; align-items: center; justify-content: space-between; margin: -4px -10px 16px; }
+.bar-head h1 { font-size: 17px; font-weight: 600; margin: 0; }
+.acct-card { display: flex; align-items: center; gap: 14px; padding: 16px; border-radius: 16px; background: var(--field); margin-bottom: 24px; }
+.acct-list { margin-top: 8px; border-top: 1px solid var(--line); }
+.acct-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.acct-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--field); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.acct-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; font-size: 15px; font-weight: 600; }
+.acct-text .sub { font-size: 13px; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn-outline.small { height: 34px; padding: 0 14px; font-size: 13px; flex-shrink: 0; }
+
+/* 底部弹出面板 */
+.sheet-wrap { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.4); display: flex; align-items: flex-end; justify-content: center; animation: fade .2s ease; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+.sheet { width: 100%; max-width: 480px; background: var(--bg); border-radius: 20px 20px 0 0; padding: 10px 20px calc(20px + var(--safe-bottom)); display: flex; flex-direction: column; gap: 16px; animation: rise .25s ease; max-height: 90vh; overflow-y: auto; }
+.sheet h2 { font-size: 20px; font-weight: 700; margin: 4px 0 0; }
+.sheet-grip { width: 36px; height: 5px; border-radius: 3px; background: var(--line); margin: 0 auto; }
+.sheet .btn-big.ghost { height: 44px; }
+
+/* 评论和回复 */
+.cmt-title { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin: 8px 0 4px; flex-wrap: wrap; }
+.thread { border-bottom: 1px solid var(--line); padding: 4px 0; }
+.cmt { display: flex; gap: 10px; width: calc(100% + 16px); padding: 10px 8px; margin: 0 -8px; border-radius: 12px; }
+.cmt:active { transform: none; background: var(--field); }
+.cmt.active { background: var(--field); }
+.cmt.reply { padding-left: 46px; }
+.cmt .dot { margin-top: 2px; }
+.cmt-main { display: flex; flex-direction: column; gap: 3px; min-width: 0; flex: 1; }
+.cmt-head { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+.cmt-head b { font-weight: 600; }
+.badge { font-size: 11px; font-weight: 600; padding: 2px 7px; border-radius: 8px; background: var(--fg); color: var(--bg); }
+.cmt-text { font-size: 15px; line-height: 1.45; overflow-wrap: anywhere; }
+.cmt-text .to { color: var(--sub); font-weight: 600; }
+.cmt-reply { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: var(--sub); margin-top: 2px; }
+.replying { max-width: 480px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; padding: 0 8px 0 16px; font-size: 13px; color: var(--sub); border-bottom: 1px solid var(--line); }
+.replying b { color: var(--fg); }
+
+.toast { position: fixed; left: 50%; top: calc(16px + var(--safe-top)); transform: translateX(-50%) translateY(-20px); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 20px; font-size: 14px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .2s, transform .2s; z-index: 50; max-width: 90vw; box-shadow: 0 4px 16px rgba(0,0,0,.15); }
 .toast.show { opacity: 1; transform: translateX(-50%); }
 
 </style>
@@ -180,137 +240,448 @@ module.exports = function seed() {
     questions: [],
     createdAt: new Date(start - i * 3600 * 1000).toISOString()
   }));
-  return { lastId: notes.length, notes, users: {} };
+  // 示例对话：一个提问 + 作者的回复
+  const ramen = notes.find((n) => n.author === 'jt.eats');
+  ramen.questions = [
+    { id: 8, author: 'amy.l', text: 'Do they take cards or is it cash only?', replyTo: null, createdAt: '2026-11-21T02:00:00.000Z' },
+    { id: 9, author: 'jt.eats', text: 'Cards are fine. Tap to pay works too.', replyTo: 8, createdAt: '2026-11-21T02:30:00.000Z' }
+  ];
+  // 示例作者的用户名先占上（没有任何登录方式，别人不能冒用）。
+  // ryan.h 不占：那是你自己的示例帖子，你注册 ryan.h 就能拥有它。
+  const users = {};
+  for (const name of new Set(notes.map((n) => n.author).concat('amy.l'))) {
+    if (name === 'ryan.h') continue;
+    users[name] = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: notes[0].createdAt };
+  }
+  return { lastId: 9, notes, users, sessions: {} };
 };
 ; return module.exports; })();
 </script>
 <script>
-// 演示版用的“本地后端”：不需要服务器，把数据存在浏览器里。
-// 接口和 src/app.js 一样，前端的 app.js 不用改就能用。
-// 需要在它之前定义 window.TROVE_SEED（示例数据函数）。
+// trove 的核心业务逻辑：账号、登录、帖子、投票、评论回复……
+// 这个文件服务器（Node）和浏览器演示版共用，所以不直接依赖 Node 或浏览器的功能，
+// 密码加密、生成随机令牌、保存照片这些都由外面传进来。
+(function (root, factory) {
+  if (typeof module === 'object' && module.exports) module.exports = factory();
+  else root.TroveCore = factory();
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  const NAME_RE = /^[a-z0-9._]{2,20}$/;
+  const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+  const PHONE_RE = /^\+?\d{7,15}$/;
+  const SESSION_MS = 60 * 24 * 3600 * 1000; // 登录 60 天有效
+  const MAX_FAILS = 5; // 连续输错几次锁定
+  const LOCK_MS = 15 * 60 * 1000;
+  const MIN_PASSWORD = 8;
+
+  class HttpError extends Error {
+    constructor(status, message) { super(message); this.status = status; }
+  }
+  const fail = (status, message) => { throw new HttpError(status, message); };
+
+  const normEmail = (v) => String(v || '').trim().toLowerCase();
+  const normPhone = (v) => String(v || '').trim().replace(/[\s\-().]/g, '');
+  const isEmail = (e) => e.length <= 254 && EMAIL_RE.test(e);
+  const isPhone = (p) => PHONE_RE.test(p);
+
+  // 旧数据文件可能缺一些字段，补齐
+  function upgrade(db) {
+    db.notes = db.notes || [];
+    db.users = db.users || {};
+    db.sessions = db.sessions || {};
+    for (const u of Object.values(db.users)) {
+      u.email = u.email || null;
+      u.phone = u.phone || null;
+      u.pass = u.pass || null;
+      u.google = u.google || null;
+      u.saved = u.saved || [];
+      u.following = u.following || [];
+    }
+    for (const n of db.notes) {
+      n.questions = (n.questions || []).map((q) => ({ replyTo: null, ...q }));
+    }
+    return db;
+  }
+
+  function createCore(opts) {
+    const { save, hashPassword, verifyPassword, randomToken } = opts;
+    const savePhoto = opts.savePhoto || ((p) => p);
+    const now = opts.now || (() => Date.now());
+    const googleEnabled = !!opts.googleEnabled;
+    const db = upgrade(opts.db);
+    const fails = new Map(); // 登录失败计数（只在内存里）
+
+    const iso = () => new Date(now()).toISOString();
+    const nextId = () => (db.lastId = (db.lastId || 0) + 1);
+    const users = () => Object.values(db.users);
+    const byEmail = (e) => users().find((u) => u.email === e) || null;
+    const byPhone = (p) => users().find((u) => u.phone === p) || null;
+    const sorted = () => [...db.notes].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+
+    function account(u) {
+      return {
+        username: u.name,
+        email: u.email,
+        phone: u.phone,
+        google: u.google ? { email: u.google.email } : null,
+        hasPassword: !!u.pass,
+        createdAt: u.createdAt
+      };
+    }
+
+    function newUser(name, fields) {
+      const u = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: iso(), ...fields };
+      db.users[name] = u;
+      return u;
+    }
+
+    async function startSession(u) {
+      const token = await randomToken();
+      db.sessions[token] = { user: u.name, expires: now() + SESSION_MS };
+      save();
+      return { token, account: account(u) };
+    }
+
+    function userFromToken(token) {
+      const s = token && db.sessions[token];
+      if (!s) return null;
+      if (s.expires < now()) { delete db.sessions[token]; save(); return null; }
+      return db.users[s.user] || null;
+    }
+
+    function checkUsername(name) {
+      if (!NAME_RE.test(name)) fail(400, 'Username: 2–20 characters, lowercase letters, numbers, . or _');
+      if (db.users[name]) fail(409, 'That username is taken');
+    }
+
+    function checkPassword(p) {
+      if (typeof p !== 'string' || p.length < MIN_PASSWORD) fail(400, `Password must be at least ${MIN_PASSWORD} characters`);
+      if (p.length > 200) fail(400, 'Password is too long');
+    }
+
+    async function requireCurrentPassword(u, current) {
+      if (!u.pass) return; // 只用 Google 登录、还没设密码的账号
+      if (!current || !(await verifyPassword(String(current), u.pass))) fail(403, 'Current password is wrong');
+    }
+
+    // 用户名不能和 Google 名字冲突：从邮箱前缀生成一个可用的
+    function freeUsername(base) {
+      let stem = String(base || 'user').toLowerCase().replace(/[^a-z0-9._]/g, '').slice(0, 16);
+      if (stem.length < 2) stem = 'user';
+      let name = stem;
+      for (let i = 2; db.users[name]; i++) name = stem + i;
+      return name;
+    }
+
+    // ---------- Google（服务器拿到 Google 资料后调用） ----------
+    async function googleSignIn(profile) {
+      if (!profile || !profile.sub) fail(400, 'Google did not return an account');
+      let u = users().find((x) => x.google && x.google.sub === profile.sub);
+      const email = normEmail(profile.email);
+      if (!u && email && profile.email_verified) {
+        // 已经用同一个邮箱注册过：直接关联
+        u = byEmail(email);
+        if (u) u.google = { sub: profile.sub, email };
+      }
+      if (!u) {
+        u = newUser(freeUsername(email.split('@')[0]), {
+          email: email && profile.email_verified && !byEmail(email) ? email : null,
+          google: { sub: profile.sub, email }
+        });
+      }
+      return startSession(u);
+    }
+
+    function linkGoogle(u, profile) {
+      const other = users().find((x) => x.google && x.google.sub === profile.sub);
+      if (other && other !== u) fail(409, 'That Google account is already linked to @' + other.name);
+      u.google = { sub: profile.sub, email: normEmail(profile.email) };
+      save();
+      return account(u);
+    }
+
+    // ---------- 帖子展示 ----------
+    function view(note, me) {
+      const votes = Object.values(note.votes);
+      const agree = note.baseAgree + votes.filter((v) => v === 1).length;
+      const disagree = note.baseDisagree + votes.filter((v) => v === -1).length;
+      const total = agree + disagree;
+      return {
+        id: note.id, author: note.author, title: note.title, body: note.body, worth: note.worth,
+        place: note.place, price: note.price, photos: note.photos, tint: note.tint,
+        agree, disagree, total, pct: total ? Math.round((agree * 100) / total) : 0,
+        likes: note.baseLikes + note.likes.length,
+        questions: note.questions.map((q) => ({ ...q, isAuthor: q.author === note.author })),
+        createdAt: note.createdAt,
+        myVote: me ? note.votes[me.name] || 0 : 0,
+        liked: me ? note.likes.includes(me.name) : false,
+        saved: me ? me.saved.includes(note.id) : false,
+        following: me ? me.following.includes(note.author) : false
+      };
+    }
+
+    // ---------- 路由 ----------
+    async function handle(method, url, { token, body } = {}) {
+      const u = new URL(url, 'http://local');
+      const path = u.pathname.replace(/\/+$/, '');
+      const parts = path.split('/').filter(Boolean); // ['api', 'notes', '3', 'vote']
+      const b = body && typeof body === 'object' ? body : {};
+      const me = userFromToken(token);
+      const needUser = () => me || fail(401, 'Please log in');
+      const ok = (data, status = 200) => ({ status, data });
+      const key = method + ' ' + path;
+
+      // ----- 账号 -----
+      if (key === 'GET /api/config') return ok({ google: googleEnabled });
+
+      if (key === 'POST /api/auth/signup') {
+        const name = String(b.username || '').trim().toLowerCase();
+        checkUsername(name);
+        const email = b.email ? normEmail(b.email) : null;
+        const phone = b.phone ? normPhone(b.phone) : null;
+        if (!email && !phone) fail(400, 'Enter an email or a phone number');
+        if (email && !isEmail(email)) fail(400, 'That email does not look right');
+        if (phone && !isPhone(phone)) fail(400, 'Phone number: 7–15 digits, can start with +');
+        if (email && byEmail(email)) fail(409, 'That email already has an account. Log in instead');
+        if (phone && byPhone(phone)) fail(409, 'That phone number already has an account. Log in instead');
+        checkPassword(b.password);
+        const u = newUser(name, { email, phone, pass: await hashPassword(b.password) });
+        const r = await startSession(u);
+        return ok(r, 201);
+      }
+
+      if (key === 'POST /api/auth/login') {
+        const raw = String(b.id || '').trim();
+        if (!raw || !b.password) fail(400, 'Enter your email, phone or username, and your password');
+        const lockKey = raw.toLowerCase();
+        const f = fails.get(lockKey);
+        if (f && f.count >= MAX_FAILS && f.until > now()) {
+          fail(429, `Too many tries. Wait ${Math.ceil((f.until - now()) / 60000)} min and try again`);
+        }
+        let user;
+        if (raw.includes('@')) user = byEmail(normEmail(raw));
+        else if (isPhone(normPhone(raw))) user = byPhone(normPhone(raw));
+        else user = db.users[raw.toLowerCase()] || null;
+        const good = user && user.pass && (await verifyPassword(String(b.password), user.pass));
+        if (!good) {
+          const cur = f && f.until > now() ? f : { count: 0 };
+          fails.set(lockKey, { count: cur.count + 1, until: now() + LOCK_MS });
+          if (user && !user.pass && user.google) fail(401, 'This account uses Google. Continue with Google instead');
+          fail(401, 'Wrong login or password');
+        }
+        fails.delete(lockKey);
+        return ok(await startSession(user));
+      }
+
+      if (key === 'POST /api/auth/logout') {
+        if (token) { delete db.sessions[token]; save(); }
+        return ok({ ok: true });
+      }
+
+      if (key === 'GET /api/account') return ok(account(needUser()));
+
+      if (key === 'PATCH /api/account') {
+        const usr = needUser();
+        await requireCurrentPassword(usr, b.currentPassword);
+        if ('email' in b) {
+          const email = b.email ? normEmail(b.email) : null;
+          if (email && !isEmail(email)) fail(400, 'That email does not look right');
+          const other = email && byEmail(email);
+          if (other && other !== usr) fail(409, 'That email is used by another account');
+          if (!email && !usr.pass && !usr.google) fail(400, 'You need at least one way to log in');
+          usr.email = email;
+        }
+        if ('phone' in b) {
+          const phone = b.phone ? normPhone(b.phone) : null;
+          if (phone && !isPhone(phone)) fail(400, 'Phone number: 7–15 digits, can start with +');
+          const other = phone && byPhone(phone);
+          if (other && other !== usr) fail(409, 'That phone number is used by another account');
+          usr.phone = phone;
+        }
+        save();
+        return ok(account(usr));
+      }
+
+      if (key === 'POST /api/account/password') {
+        const usr = needUser();
+        await requireCurrentPassword(usr, b.currentPassword);
+        checkPassword(b.newPassword);
+        usr.pass = await hashPassword(b.newPassword);
+        // 改密码后，其他设备上的登录全部失效
+        for (const [t, s] of Object.entries(db.sessions)) if (s.user === usr.name && t !== token) delete db.sessions[t];
+        save();
+        return ok(account(usr));
+      }
+
+      if (key === 'DELETE /api/account/google') {
+        const usr = needUser();
+        if (!usr.pass) fail(400, 'Set a password first, so you can still log in without Google');
+        usr.google = null;
+        save();
+        return ok(account(usr));
+      }
+
+      // ----- 帖子 -----
+      if (key === 'GET /api/notes') {
+        const filter = u.searchParams.get('filter') || 'all';
+        const q = (u.searchParams.get('q') || '').trim().toLowerCase();
+        let notes = sorted();
+        if (filter === 'yes') notes = notes.filter((n) => n.worth === true);
+        if (filter === 'no') notes = notes.filter((n) => n.worth === false);
+        if (q) notes = notes.filter((n) => [n.title, n.body, n.place, n.author].join(' ').toLowerCase().includes(q));
+        return ok(notes.map((n) => view(n, me)));
+      }
+
+      if (key === 'GET /api/me') {
+        const usr = needUser();
+        return ok({
+          name: usr.name,
+          account: account(usr),
+          following: usr.following,
+          saved: usr.saved.map((id) => db.notes.find((n) => n.id === id)).filter(Boolean).map((n) => view(n, usr)),
+          mine: sorted().filter((n) => n.author === usr.name).map((n) => view(n, usr))
+        });
+      }
+
+      if (key === 'POST /api/notes') {
+        const usr = needUser();
+        const title = String(b.title || '').trim();
+        const text = String(b.body || '').trim();
+        if (!title) fail(400, 'Add a title first');
+        if (title.length > 120) fail(400, 'Title: 120 characters at most');
+        if (text.length > 5000) fail(400, 'Story: 5000 characters at most');
+        const photosIn = Array.isArray(b.photos) ? b.photos : [];
+        if (photosIn.length > 4) fail(400, '4 photos at most');
+        const photos = [];
+        for (const p of photosIn) photos.push(await savePhoto(p));
+        const note = {
+          id: nextId(), author: usr.name, title, body: text,
+          worth: b.worth === true ? true : b.worth === false ? false : null,
+          place: String(b.place || '').trim().slice(0, 80), price: String(b.price || '').trim().slice(0, 20),
+          photos, tint: Math.floor(Math.random() * 6), votes: {}, likes: [],
+          baseAgree: 0, baseDisagree: 0, baseLikes: 0, questions: [], createdAt: iso()
+        };
+        db.notes.push(note);
+        save();
+        return ok(view(note, usr), 201);
+      }
+
+      if (parts[1] === 'users' && parts[3] === 'follow' && method === 'POST' && parts.length === 4) {
+        const usr = needUser();
+        const target = decodeURIComponent(parts[2]).toLowerCase();
+        if (!NAME_RE.test(target)) fail(400, 'Unknown user');
+        if (target === usr.name) fail(400, 'You cannot follow yourself');
+        const i = usr.following.indexOf(target);
+        if (i >= 0) usr.following.splice(i, 1); else usr.following.push(target);
+        save();
+        return ok({ following: i < 0 });
+      }
+
+      if (parts[1] === 'notes' && parts.length >= 3) {
+        const note = db.notes.find((n) => n.id === Number(parts[2]));
+        if (!note) fail(404, 'Note not found');
+        if (method === 'GET' && parts.length === 3) return ok(view(note, me));
+        const action = method === 'POST' && parts.length === 4 ? parts[3] : null;
+        const usr = action ? needUser() : null;
+
+        if (action === 'vote') {
+          if (note.worth === null) fail(400, 'This note has no verdict to vote on');
+          const v = Number(b.value);
+          if (![1, -1, 0].includes(v)) fail(400, 'value must be 1, -1 or 0');
+          if (v === 0) delete note.votes[usr.name]; else note.votes[usr.name] = v;
+        } else if (action === 'like') {
+          const i = note.likes.indexOf(usr.name);
+          if (i >= 0) note.likes.splice(i, 1); else note.likes.push(usr.name);
+        } else if (action === 'save') {
+          const i = usr.saved.indexOf(note.id);
+          if (i >= 0) usr.saved.splice(i, 1); else usr.saved.push(note.id);
+        } else if (action === 'questions') {
+          const text = String(b.text || '').trim();
+          if (!text) fail(400, 'Write something first');
+          if (text.length > 500) fail(400, '500 characters at most');
+          let replyTo = null;
+          if (b.replyTo != null) {
+            const parent = note.questions.find((q) => q.id === Number(b.replyTo));
+            if (!parent) fail(400, 'That comment no longer exists');
+            replyTo = parent.id;
+          }
+          note.questions.push({ id: nextId(), author: usr.name, text, replyTo, createdAt: iso() });
+          save();
+          return ok(view(note, usr), 201);
+        } else {
+          fail(404, 'Not found');
+        }
+        save();
+        return ok(view(note, usr));
+      }
+
+      fail(404, 'Not found');
+    }
+
+    return { handle, userFromToken, googleSignIn, linkGoogle, account };
+  }
+
+  return { createCore, HttpError, upgrade, NAME_RE };
+});
+
+</script>
+<script>
+// 演示版用的"本地后端"：不需要服务器，用和服务器同一份 core.js，数据存在浏览器里。
+// 需要先加载 window.TROVE_SEED（示例数据）和 window.TroveCore（core.js）。
 (() => {
   'use strict';
   const KEY = 'trove.demo.db';
-  const NAME_RE = /^[a-z0-9._]{2,20}$/;
-  let db;
-  try { db = JSON.parse(localStorage.getItem(KEY)); } catch (e) { db = null; }
-  if (!db) db = window.TROVE_SEED();
+  const enc = new TextEncoder();
+  const hex = (buf) => [...new Uint8Array(buf)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  const unhex = (h) => new Uint8Array((h.match(/../g) || []).map((x) => parseInt(x, 16)));
 
-  function save() {
-    try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 存不下就只保留在内存里 */ }
+  // 浏览器里用 PBKDF2 加密密码
+  async function pbkdf2(password, salt) {
+    const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+    return crypto.subtle.deriveBits({ name: 'PBKDF2', hash: 'SHA-256', salt, iterations: 210000 }, key, 256);
   }
-  class HttpError extends Error { constructor(status, msg) { super(msg); this.status = status; } }
-
-  const nextId = () => (db.lastId = (db.lastId || 0) + 1);
-  const getUser = (name) => db.users[name] || (db.users[name] = { name, saved: [], following: [], createdAt: new Date().toISOString() });
-  const sorted = () => [...db.notes].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-
-  function view(note, me) {
-    const votes = Object.values(note.votes);
-    const agree = note.baseAgree + votes.filter((v) => v === 1).length;
-    const disagree = note.baseDisagree + votes.filter((v) => v === -1).length;
-    const total = agree + disagree;
-    const u = me ? getUser(me) : null;
-    return {
-      id: note.id, author: note.author, title: note.title, body: note.body, worth: note.worth,
-      place: note.place, price: note.price, photos: note.photos, tint: note.tint,
-      agree, disagree, total, pct: total ? Math.round((agree * 100) / total) : 0,
-      likes: note.baseLikes + note.likes.length, questions: note.questions, createdAt: note.createdAt,
-      myVote: me ? note.votes[me] || 0 : 0,
-      liked: me ? note.likes.includes(me) : false,
-      saved: u ? u.saved.includes(note.id) : false,
-      following: u ? u.following.includes(note.author) : false
-    };
+  async function hashPassword(password) {
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    return `pbkdf2$${hex(salt)}$${hex(await pbkdf2(password, salt))}`;
+  }
+  async function verifyPassword(password, stored) {
+    const [algo, salt, hash] = String(stored).split('$');
+    if (algo !== 'pbkdf2') return false;
+    return hex(await pbkdf2(password, unhex(salt))) === hash;
   }
 
-  function handle(method, url, user, body) {
-    const u = new URL(url, 'http://local');
-    const parts = u.pathname.split('/').filter(Boolean); // ['api', 'notes', '3', 'vote']
-    const me = NAME_RE.test(user || '') ? user : null;
-    const needUser = () => { if (!me) throw new HttpError(401, 'Pick a username first'); };
-    const findNote = () => {
-      const n = db.notes.find((x) => x.id === Number(parts[2]));
-      if (!n) throw new HttpError(404, 'Note not found');
-      return n;
-    };
-
-    if (method === 'GET' && u.pathname === '/api/notes') {
-      const filter = u.searchParams.get('filter') || 'all';
-      const q = (u.searchParams.get('q') || '').trim().toLowerCase();
-      let notes = sorted();
-      if (filter === 'yes') notes = notes.filter((n) => n.worth === true);
-      if (filter === 'no') notes = notes.filter((n) => n.worth === false);
-      if (q) notes = notes.filter((n) => [n.title, n.body, n.place, n.author].join(' ').toLowerCase().includes(q));
-      return notes.map((n) => view(n, me));
-    }
-    if (method === 'GET' && parts[1] === 'notes' && parts.length === 3) return view(findNote(), me);
-    if (method === 'GET' && u.pathname === '/api/me') {
-      needUser();
-      const usr = getUser(me);
-      return {
-        name: me, following: usr.following,
-        saved: usr.saved.map((id) => db.notes.find((n) => n.id === id)).filter(Boolean).map((n) => view(n, me)),
-        mine: sorted().filter((n) => n.author === me).map((n) => view(n, me))
-      };
-    }
-
-    if (method !== 'POST') throw new HttpError(404, 'Not found');
-    needUser();
-    const b = body || {};
-
-    if (u.pathname === '/api/notes') {
-      const title = String(b.title || '').trim();
-      if (!title) throw new HttpError(400, 'Add a title first');
-      const photos = (Array.isArray(b.photos) ? b.photos : []).slice(0, 4);
-      const note = {
-        id: nextId(), author: me, title, body: String(b.body || '').trim().slice(0, 5000),
-        worth: b.worth === true ? true : b.worth === false ? false : null,
-        place: String(b.place || '').trim().slice(0, 80), price: String(b.price || '').trim().slice(0, 20),
-        photos, tint: Math.floor(Math.random() * 6), votes: {}, likes: [],
-        baseAgree: 0, baseDisagree: 0, baseLikes: 0, questions: [], createdAt: new Date().toISOString()
-      };
-      db.notes.push(note);
-      save();
-      return view(note, me);
-    }
-    if (parts[1] === 'users' && parts[3] === 'follow') {
-      const target = decodeURIComponent(parts[2]);
-      if (target === me) throw new HttpError(400, 'You cannot follow yourself');
-      const usr = getUser(me);
-      const i = usr.following.indexOf(target);
-      if (i >= 0) usr.following.splice(i, 1); else usr.following.push(target);
-      save();
-      return { following: i < 0 };
-    }
-
-    const note = findNote();
-    const action = parts[3];
-    if (action === 'vote') {
-      if (note.worth === null) throw new HttpError(400, 'This note has no verdict to vote on');
-      const v = Number(b.value);
-      if (v === 0) delete note.votes[me]; else note.votes[me] = v;
-    } else if (action === 'like') {
-      const i = note.likes.indexOf(me);
-      if (i >= 0) note.likes.splice(i, 1); else note.likes.push(me);
-    } else if (action === 'save') {
-      const usr = getUser(me);
-      const i = usr.saved.indexOf(note.id);
-      if (i >= 0) usr.saved.splice(i, 1); else usr.saved.push(note.id);
-    } else if (action === 'questions') {
-      const text = String(b.text || '').trim();
-      if (!text) throw new HttpError(400, 'Write a question first');
-      note.questions.push({ id: nextId(), author: me, text: text.slice(0, 500), createdAt: new Date().toISOString() });
-    } else {
-      throw new HttpError(404, 'Not found');
-    }
-    save();
-    return view(note, me);
+  function load() {
+    try { const d = JSON.parse(localStorage.getItem(KEY)); if (d) return d; } catch (e) { /* ignore */ }
+    return window.TROVE_SEED();
   }
 
-  window.TROVE_LOCAL_API = async (path, { method = 'GET', user, body } = {}) => handle(method, path, user, body);
+  let core;
+  function boot(db) {
+    core = window.TroveCore.createCore({
+      db,
+      save: () => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) { /* 存不下就只留在内存里 */ } },
+      hashPassword,
+      verifyPassword,
+      randomToken: () => hex(crypto.getRandomValues(new Uint8Array(32))),
+      googleEnabled: false
+    });
+  }
+  boot(load());
+
+  window.TROVE_LOCAL_API = async (path, { method = 'GET', token, body } = {}) => {
+    try {
+      // 走一遍 JSON，和真的网络请求一样拿到的是拷贝
+      const r = await core.handle(method, path, { token, body: body ? JSON.parse(JSON.stringify(body)) : undefined });
+      return JSON.parse(JSON.stringify(r.data));
+    } catch (e) {
+      if (e instanceof window.TroveCore.HttpError) { const err = new Error(e.message); err.status = e.status; throw err; }
+      throw e;
+    }
+  };
   window.TROVE_LOCAL_RESET = () => {
     try { localStorage.removeItem(KEY); } catch (e) { /* ignore */ }
-    db = window.TROVE_SEED();
+    boot(window.TROVE_SEED());
   };
 })();
 
@@ -332,14 +703,28 @@ module.exports = function seed() {
   let pushed = false; // 打开详情时是否往浏览器历史里加了一条
 
   const state = {
-    user: storage.get('trove.user') || '',
-    tab: 'home', // home | search | post | me
-    filter: 'all', // all | yes | no
+    token: storage.get('trove.token') || '',
+    account: null, // 登录后的账号信息
+    config: { google: false },
+    // 未登录时的页面
+    auth: 'welcome', // welcome | signup | login
+    authMethod: 'email', // email | phone
+    authForm: { username: '', email: '', phone: '', id: '', password: '' },
+    authError: '',
+    showPassword: false,
+    // 登录后的页面
+    tab: 'home', // home | search | post | me | account
+    filter: 'all',
     query: '',
     notes: [],
     me: null,
-    detail: null, // 正在看的帖子
+    detail: null,
+    replyTo: null, // { id, author } 正在回复的评论
+    askText: '',
     draft: emptyDraft(),
+    sheet: null, // 账号设置里弹出的面板：email | phone | password | google-off
+    sheetForm: {},
+    sheetError: '',
     busy: false
   };
 
@@ -350,13 +735,21 @@ module.exports = function seed() {
   // ---------- 小工具 ----------
   const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const tint = (n) => `var(--t${(n.tint ?? 0) % 6})`;
-  const nameTint = (name) => `var(--t${[...name].reduce((a, c) => a + c.charCodeAt(0), 0) % 6})`;
+  const nameTint = (name) => `var(--t${[...String(name)].reduce((a, c) => a + c.charCodeAt(0), 0) % 6})`;
   const bgStyle = (n) => n.photos && n.photos.length
     ? `background-color:${tint(n)};background-image:url('${esc(n.photos[0])}')`
     : `background-color:${tint(n)}`;
   const heights = [220, 210, 170, 230, 190, 200, 160];
   const verdictLabel = (n) => n.worth === true ? 'Worth it' : n.worth === false ? 'Not worth it' : '';
   const meta = (n) => [n.price, n.place].filter(Boolean).join(' · ');
+  const me = () => (state.account ? state.account.username : '');
+  const ago = (iso) => {
+    const s = (Date.now() - Date.parse(iso)) / 1000;
+    if (s < 60) return 'now';
+    if (s < 3600) return Math.floor(s / 60) + 'm';
+    if (s < 86400) return Math.floor(s / 3600) + 'h';
+    return Math.floor(s / 86400) + 'd';
+  };
 
   const icon = {
     check: (s = 12, w = 3) => `<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="${w}" aria-hidden="true"><path d="m5 12 5 5 9-10"/></svg>`,
@@ -370,7 +763,16 @@ module.exports = function seed() {
     user: `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-7 8-7s8 3 8 7"/></svg>`,
     back: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg>`,
     pin: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>`,
-    send: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`
+    send: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>`,
+    gear: `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>`,
+    mail: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>`,
+    phone: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/></svg>`,
+    lock: `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`,
+    eye: (open) => open
+      ? `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>`
+      : `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 3l18 18M10.6 5.1A10 10 0 0 1 12 5c6.4 0 10 7 10 7a17 17 0 0 1-3.2 4M6.6 6.6A17 17 0 0 0 2 12s3.6 7 10 7a9.7 9.7 0 0 0 5.4-1.6M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>`,
+    reply: `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 6 6v5"/></svg>`,
+    google: `<svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/><path fill="#FF3D00" d="m6.3 14.7 6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34 6.1 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.2 35.1 26.7 36 24 36c-5.2 0-9.6-3.3-11.3-8l-6.5 5C9.5 39.6 16.2 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3a12 12 0 0 1-4.1 5.6l6.2 5.2C37 39.2 44 34 44 24c0-1.3-.1-2.4-.4-3.5z"/></svg>`
   };
 
   let toastTimer;
@@ -378,22 +780,72 @@ module.exports = function seed() {
     $toast.textContent = msg;
     $toast.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => $toast.classList.remove('show'), 2200);
+    toastTimer = setTimeout(() => $toast.classList.remove('show'), 2400);
   }
 
   async function api(path, opts = {}) {
-    // 演示版：没有服务器，交给浏览器里的本地后端处理
-    if (window.TROVE_LOCAL_API) {
-      return window.TROVE_LOCAL_API(path, { method: opts.method || 'GET', user: state.user, body: opts.body });
+    const method = opts.method || 'GET';
+    let data;
+    try {
+      if (window.TROVE_LOCAL_API) {
+        // 演示版：没有服务器，交给浏览器里的本地后端处理
+        data = await window.TROVE_LOCAL_API(path, { method, token: state.token, body: opts.body });
+      } else {
+        const res = await fetch(path, {
+          method,
+          headers: { 'Content-Type': 'application/json', ...(state.token ? { Authorization: 'Bearer ' + state.token } : {}) },
+          body: opts.body ? JSON.stringify(opts.body) : undefined
+        });
+        data = await res.json().catch(() => ({}));
+        if (!res.ok) { const e = new Error(data.error || 'Something went wrong'); e.status = res.status; throw e; }
+      }
+    } catch (e) {
+      // 登录过期：回到登录页
+      if (e.status === 401 && state.token && !opts.noLogout) {
+        signedOut('Please log in again');
+      }
+      throw e;
     }
-    const res = await fetch(path, {
-      method: opts.method || 'GET',
-      headers: { 'Content-Type': 'application/json', ...(state.user ? { 'X-User': state.user } : {}) },
-      body: opts.body ? JSON.stringify(opts.body) : undefined
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Something went wrong');
     return data;
+  }
+
+  // ---------- 登录状态 ----------
+  function signedIn(r) {
+    state.token = r.token;
+    state.account = r.account;
+    storage.set('trove.token', r.token);
+    state.authForm = { username: '', email: '', phone: '', id: '', password: '' };
+    state.authError = '';
+    state.showPassword = false;
+    state.draft = emptyDraft();
+    state.filter = 'all';
+    go('home');
+  }
+
+  function signedOut(message) {
+    state.token = '';
+    state.account = null;
+    state.me = null;
+    state.detail = null;
+    state.sheet = null;
+    storage.remove('trove.token');
+    state.auth = message ? 'login' : 'welcome';
+    state.authError = message || '';
+    render();
+  }
+
+  async function startGoogle(mode) {
+    if (!state.config.google) {
+      const msg = window.TROVE_LOCAL_API
+        ? 'Google sign-in needs the server version. In this demo, use email or phone.'
+        : 'Google sign-in is not set up on this server yet. Use email or phone for now.';
+      if (mode === 'link') toast(msg); else { state.authError = msg; render(); }
+      return;
+    }
+    try {
+      const r = await api('/api/auth/google/start', { method: 'POST', body: { mode } });
+      window.location.href = r.url;
+    } catch (e) { toast(e.message); }
   }
 
   // ---------- 数据 ----------
@@ -406,6 +858,7 @@ module.exports = function seed() {
 
   async function loadMe() {
     state.me = await api('/api/me');
+    state.account = state.me.account;
   }
 
   // 用服务器返回的新数据替换本地缓存里的同一条帖子
@@ -420,19 +873,80 @@ module.exports = function seed() {
     }
   }
 
-  // ---------- 页面 ----------
+  // ---------- 未登录：欢迎 / 注册 / 登录 ----------
+  const googleBtn = (label) => `<button type="button" class="btn-social" data-google="login">${icon.google}${label}</button>`;
+  const errBox = (msg) => `<div class="err" role="alert">${esc(msg)}</div>`;
+
+  function passwordField(name, label, autocomplete, value) {
+    return `<label class="field">${label}
+      <span class="pw">
+        <input type="${state.showPassword ? 'text' : 'password'}" data-af="${name}" value="${esc(value)}" autocomplete="${autocomplete}" maxlength="200" required>
+        <button type="button" class="pw-eye" data-toggle-pw aria-label="${state.showPassword ? 'Hide password' : 'Show password'}">${icon.eye(!state.showPassword)}</button>
+      </span>
+    </label>`;
+  }
+
   function viewWelcome() {
-    return `<form class="welcome" data-form="welcome">
-      <h1>trove</h1>
-      <p>Campus notes with a verdict. Share a find, say if it was worth it, and see if people agree.</p>
-      <label class="field">Pick a username
-        <input name="name" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="e.g. ryan.h" required>
+    return `<main class="auth">
+      <div class="auth-hero">
+        <div class="auth-logo">trove</div>
+        <p>Campus notes with a verdict. Share a find, say if it was worth it, and see if people agree.</p>
+      </div>
+      <div class="auth-actions">
+        ${googleBtn('Continue with Google')}
+        <button type="button" class="btn-social" data-auth-go="signup" data-method="email">${icon.mail}Sign up with email</button>
+        <button type="button" class="btn-social" data-auth-go="signup" data-method="phone">${icon.phone}Sign up with phone</button>
+        ${state.authError ? errBox(state.authError) : ''}
+        <p class="auth-switch">Already have an account? <button type="button" class="link" data-auth-go="login">Log in</button></p>
+      </div>
+    </main>`;
+  }
+
+  function viewSignup() {
+    const f = state.authForm;
+    const isEmail = state.authMethod === 'email';
+    return `<form class="auth" data-form="signup" novalidate>
+      <button type="button" class="back-plain" data-auth-go="welcome" aria-label="Back">${icon.back}</button>
+      <h1 class="auth-title">Create your account</h1>
+      <div class="seg" role="group" aria-label="Sign up with">
+        <button type="button" data-method="email" aria-pressed="${isEmail}">Email</button>
+        <button type="button" data-method="phone" aria-pressed="${!isEmail}">Phone</button>
+      </div>
+      <label class="field">Username
+        <span class="at"><span aria-hidden="true">@</span><input data-af="username" value="${esc(f.username)}" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="20" placeholder="ryan.h" required></span>
+        <span class="hint">2–20 characters: lowercase letters, numbers, . or _</span>
       </label>
-      <div class="err" data-err></div>
-      <button class="btn-primary" type="submit">Get started</button>
+      ${isEmail
+        ? `<label class="field">Email<input type="email" data-af="email" value="${esc(f.email)}" autocomplete="email" autocapitalize="none" placeholder="you@illinois.edu" required></label>`
+        : `<label class="field">Phone number<input type="tel" data-af="phone" value="${esc(f.phone)}" autocomplete="tel" placeholder="+1 217 555 0123" required></label>`}
+      ${passwordField('password', 'Password', 'new-password', f.password)}
+      <span class="hint" style="margin-top:-14px">At least 8 characters</span>
+      ${state.authError ? errBox(state.authError) : ''}
+      <button type="submit" class="btn-big" ${state.busy ? 'disabled' : ''}>${state.busy ? 'Creating…' : 'Create account'}</button>
+      <div class="or"><span>or</span></div>
+      ${googleBtn('Continue with Google')}
+      <p class="auth-switch">Already have an account? <button type="button" class="link" data-auth-go="login">Log in</button></p>
     </form>`;
   }
 
+  function viewLogin() {
+    const f = state.authForm;
+    return `<form class="auth" data-form="login" novalidate>
+      <button type="button" class="back-plain" data-auth-go="welcome" aria-label="Back">${icon.back}</button>
+      <h1 class="auth-title">Welcome back</h1>
+      <label class="field">Email, phone or username
+        <input data-af="id" value="${esc(f.id)}" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="you@illinois.edu" required>
+      </label>
+      ${passwordField('password', 'Password', 'current-password', f.password)}
+      ${state.authError ? errBox(state.authError) : ''}
+      <button type="submit" class="btn-big" ${state.busy ? 'disabled' : ''}>${state.busy ? 'Logging in…' : 'Log in'}</button>
+      <div class="or"><span>or</span></div>
+      ${googleBtn('Continue with Google')}
+      <p class="auth-switch">New to trove? <button type="button" class="link" data-auth-go="signup">Create an account</button></p>
+    </form>`;
+  }
+
+  // ---------- 首页 ----------
   function card(n, i) {
     const has = n.worth !== null;
     const h = n.photos.length ? heights[i % heights.length] + 20 : heights[n.id % heights.length];
@@ -460,7 +974,7 @@ module.exports = function seed() {
     return `<main class="screen">
       <div class="top"><div class="logo">trove</div><div class="sub" style="font-size:13px">Champaign, IL</div></div>
       <div class="seg" role="group" aria-label="Filter notes">
-        ${f.map(([k, l]) => `<button data-filter="${k}" aria-pressed="${state.filter === k}" style="text-align:center">${l}</button>`).join('')}
+        ${f.map(([k, l]) => `<button data-filter="${k}" aria-pressed="${state.filter === k}">${l}</button>`).join('')}
       </div>
       ${state.notes.length
         ? `<div class="feed"><div class="col">${left.map((n, i) => card(n, i * 2)).join('')}</div><div class="col">${right.map((n, i) => card(n, i * 2 + 1)).join('')}</div></div>`
@@ -468,6 +982,7 @@ module.exports = function seed() {
     </main>`;
   }
 
+  // ---------- 搜索 ----------
   function resultRows() {
     if (!state.notes.length) return `<div class="empty">No verdicts yet. Be the first to post one.</div>`;
     return state.notes.map((n) => {
@@ -491,6 +1006,7 @@ module.exports = function seed() {
     </main>`;
   }
 
+  // ---------- 发帖 ----------
   function viewPost() {
     const d = state.draft;
     return `<form class="screen post" data-form="post" style="padding-bottom:32px">
@@ -524,6 +1040,7 @@ module.exports = function seed() {
     </form>`;
   }
 
+  // ---------- 我的 ----------
   function miniGrid(list, emptyText) {
     if (!list.length) return `<div class="empty" style="padding:16px 0 28px">${emptyText}</div>`;
     return `<div class="grid2">${list.map((n) => `<button class="card-open" data-open="${n.id}">
@@ -536,32 +1053,132 @@ module.exports = function seed() {
   function viewMe() {
     const m = state.me || { saved: [], mine: [], following: [] };
     return `<main class="screen">
+      <div class="me-top"><button class="icon-btn" data-tab="account" aria-label="Account settings">${icon.gear}</button></div>
       <div class="profile">
-        <div class="avatar" style="background:${nameTint(state.user)}">${esc(state.user[0].toUpperCase())}</div>
-        <div style="display:flex;flex-direction:column;gap:4px">
-          <div style="font-size:22px;font-weight:700">@${esc(state.user)}</div>
+        <div class="avatar" style="background:${nameTint(me())}">${esc(me()[0].toUpperCase())}</div>
+        <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+          <div style="font-size:22px;font-weight:700">@${esc(me())}</div>
           <div class="sub" style="font-size:14px">${m.mine.length} notes · following ${m.following.length}</div>
         </div>
       </div>
-      <div class="label-caps">Saved · ${m.saved.length}</div>
+      <button class="row-link" data-tab="account">${icon.lock}<span>Account &amp; sign-in</span><span class="sub">${linkedSummary()}</span></button>
+      <div class="label-caps" style="margin-top:24px">Saved · ${m.saved.length}</div>
       ${miniGrid(m.saved, 'Tap the bookmark on any note to keep it here.')}
       <div class="label-caps">My notes · ${m.mine.length}</div>
       ${miniGrid(m.mine, 'You have not posted yet.')}
-      <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button class="btn-outline" data-logout>Switch user</button>
-        ${window.TROVE_LOCAL_RESET ? '<button class="btn-outline" data-reset>Reset demo</button>' : ''}
-      </div>
-      ${window.TROVE_LOCAL_RESET ? '<p class="sub" style="font-size:13px;margin-top:16px">Demo version: sample notes, and everything you post stays on this device only.</p>' : ''}
     </main>`;
+  }
+
+  function linkedSummary() {
+    const a = state.account;
+    if (!a) return '';
+    return [a.email && 'Email', a.phone && 'Phone', a.google && 'Google'].filter(Boolean).join(' · ');
+  }
+
+  // ---------- 账号设置 ----------
+  function viewAccount() {
+    const a = state.account;
+    const row = (ic, label, value, btn, attr) => `<div class="acct-row">
+      <span class="acct-icon">${ic}</span>
+      <span class="acct-text"><span>${label}</span><span class="sub">${value}</span></span>
+      <button class="btn-outline small" ${attr}>${btn}</button>
+    </div>`;
+    return `<main class="screen">
+      <div class="bar-head">
+        <button class="icon-btn" data-tab="me" aria-label="Back">${icon.back}</button>
+        <h1>Account</h1>
+        <span style="width:44px"></span>
+      </div>
+      <div class="acct-card">
+        <div class="avatar" style="width:56px;height:56px;font-size:22px;background:${nameTint(a.username)}">${esc(a.username[0].toUpperCase())}</div>
+        <div><div style="font-size:18px;font-weight:700">@${esc(a.username)}</div>
+        <div class="sub" style="font-size:13px">Member since ${new Date(a.createdAt).toLocaleDateString(undefined, { month: 'short', year: 'numeric' })}</div></div>
+      </div>
+      <div class="label-caps">Sign-in methods</div>
+      <div class="acct-list">
+        ${row(icon.mail, 'Email', a.email ? esc(a.email) : 'Not added', a.email ? 'Change' : 'Add', 'data-sheet="email"')}
+        ${row(icon.phone, 'Phone', a.phone ? esc(a.phone) : 'Not added', a.phone ? 'Change' : 'Add', 'data-sheet="phone"')}
+        ${row(icon.google, 'Google', a.google ? esc(a.google.email) : 'Not connected', a.google ? 'Disconnect' : 'Connect', a.google ? 'data-sheet="google-off"' : 'data-google="link"')}
+        ${row(icon.lock, 'Password', a.hasPassword ? '••••••••' : 'Not set', a.hasPassword ? 'Change' : 'Set', 'data-sheet="password"')}
+      </div>
+      <p class="sub" style="font-size:13px;line-height:1.5;margin:12px 0 28px">You can log in with your email, phone number or username, plus your password${a.google ? ', or with Google' : ''}.</p>
+      <button class="btn-big danger-outline" data-logout>Log out</button>
+      ${window.TROVE_LOCAL_RESET ? `<button class="btn-big ghost" data-reset style="margin-top:10px">Reset demo</button>
+        <p class="sub" style="font-size:13px;margin-top:12px">Demo version: sample notes, and everything you post stays on this device only.</p>` : ''}
+    </main>`;
+  }
+
+  function viewSheet() {
+    const s = state.sheet;
+    const a = state.account;
+    const f = state.sheetForm;
+    const current = a.hasPassword
+      ? `<label class="field">Current password<input type="password" data-sf="currentPassword" value="${esc(f.currentPassword || '')}" autocomplete="current-password" required></label>`
+      : '';
+    let title, body, submit = 'Save', extra = '';
+    if (s === 'email') {
+      title = a.email ? 'Change email' : 'Add email';
+      body = `<label class="field">Email<input type="email" data-sf="email" value="${esc(f.email ?? a.email ?? '')}" autocomplete="email" autocapitalize="none" placeholder="you@illinois.edu"></label>${current}`;
+      if (a.email) extra = `<button type="button" class="btn-big ghost" data-sheet-remove="email">Remove email</button>`;
+    } else if (s === 'phone') {
+      title = a.phone ? 'Change phone' : 'Add phone';
+      body = `<label class="field">Phone number<input type="tel" data-sf="phone" value="${esc(f.phone ?? a.phone ?? '')}" autocomplete="tel" placeholder="+1 217 555 0123"></label>${current}`;
+      if (a.phone) extra = `<button type="button" class="btn-big ghost" data-sheet-remove="phone">Remove phone</button>`;
+    } else if (s === 'password') {
+      title = a.hasPassword ? 'Change password' : 'Set a password';
+      body = `${current}<label class="field">New password<input type="password" data-sf="newPassword" value="${esc(f.newPassword || '')}" autocomplete="new-password" required><span class="hint">At least 8 characters. Other devices will be logged out.</span></label>`;
+    } else if (s === 'google-off') {
+      title = 'Disconnect Google?';
+      body = `<p class="sub" style="margin:0;line-height:1.5">You will no longer be able to log in with ${esc(a.google.email)}. ${a.hasPassword ? 'You can still log in with your password.' : 'Set a password first so you can still log in.'}</p>`;
+      submit = 'Disconnect';
+    }
+    return `<div class="sheet-wrap" data-sheet-close>
+      <form class="sheet" data-form="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" novalidate>
+        <div class="sheet-grip" aria-hidden="true"></div>
+        <h2>${esc(title)}</h2>
+        ${body}
+        ${state.sheetError ? errBox(state.sheetError) : ''}
+        <button type="submit" class="btn-big" ${state.busy ? 'disabled' : ''}>${state.busy ? 'Saving…' : submit}</button>
+        ${extra}
+        <button type="button" class="btn-big ghost" data-sheet-cancel>Cancel</button>
+      </form>
+    </div>`;
+  }
+
+  // ---------- 帖子详情 + 评论回复 ----------
+  // 把评论整理成"楼"：每条顶层评论下面跟着它的所有回复（按时间）
+  function threads(questions) {
+    const byId = new Map(questions.map((q) => [q.id, q]));
+    const rootOf = (q) => { let r = q; const seen = new Set(); while (r.replyTo && byId.has(r.replyTo) && !seen.has(r.id)) { seen.add(r.id); r = byId.get(r.replyTo); } return r; };
+    const roots = questions.filter((q) => !q.replyTo || !byId.has(q.replyTo));
+    return roots.map((root) => ({
+      root,
+      replies: questions.filter((q) => q !== root && rootOf(q) === root).map((q) => ({ ...q, parent: byId.get(q.replyTo) }))
+    }));
+  }
+
+  function comment(q, isReply) {
+    const active = state.replyTo && state.replyTo.id === q.id;
+    const to = isReply && q.parent && q.parent.replyTo ? `<span class="to">@${esc(q.parent.author)}</span> ` : '';
+    return `<button class="cmt${isReply ? ' reply' : ''}${active ? ' active' : ''}" data-reply="${q.id}" data-reply-author="${esc(q.author)}" aria-label="Reply to ${esc(q.author)}">
+      <span class="dot" style="background:${nameTint(q.author)};width:${isReply ? 24 : 28}px;height:${isReply ? 24 : 28}px"></span>
+      <span class="cmt-main">
+        <span class="cmt-head"><b>${esc(q.author)}</b>${q.isAuthor ? '<span class="badge">Author</span>' : ''}<span class="sub">${ago(q.createdAt)}</span></span>
+        <span class="cmt-text">${to}${esc(q.text)}</span>
+        <span class="cmt-reply">${icon.reply}Reply</span>
+      </span>
+    </button>`;
   }
 
   function viewDetail() {
     const n = state.detail;
     const has = n.worth !== null;
-    const mineNote = n.author === state.user;
+    const mine = n.author === me();
     const hero = n.photos.length > 1
       ? `<div class="hero-strip">${n.photos.map((p) => `<div style="background-image:url('${esc(p)}')" role="img" aria-label="Photo"></div>`).join('')}</div>`
       : '';
+    const th = threads(n.questions);
+    const placeholder = state.replyTo ? `Reply to @${state.replyTo.author}…` : mine ? 'Add a comment…' : 'Ask the author…';
     return `<div class="detail" role="dialog" aria-modal="true" aria-label="${esc(n.title)}">
       <div class="detail-inner">
         <div class="hero" style="${n.photos.length > 1 ? `background:${tint(n)}` : bgStyle(n)}">
@@ -571,7 +1188,7 @@ module.exports = function seed() {
         <div class="detail-body">
           <div class="author-row">
             <span class="who"><span class="dot" style="background:${nameTint(n.author)}"></span>${esc(n.author)}</span>
-            ${mineNote ? '' : `<button class="btn-outline" data-follow="${esc(n.author)}" aria-pressed="${n.following}">${n.following ? 'Following' : 'Follow'}</button>`}
+            ${mine ? '' : `<button class="btn-outline" data-follow="${esc(n.author)}" aria-pressed="${n.following}">${n.following ? 'Following' : 'Follow'}</button>`}
           </div>
           <h2 class="d-title">${esc(n.title)}</h2>
           ${has ? `<div class="verdict-box"><span class="pill ${n.worth ? 'yes' : 'no'}">${verdictLabel(n)}</span><span style="font-size:15px;font-weight:600">${esc(meta(n))}</span></div>`
@@ -587,24 +1204,31 @@ module.exports = function seed() {
             </div>
           </div>` : ''}
           <div>
-            <div class="label-caps" style="margin-top:8px">Questions · ${n.questions.length}</div>
-            ${n.questions.length
-              ? n.questions.map((q) => `<div class="q"><b>${esc(q.author)}</b>${esc(q.text)}</div>`).join('')
-              : `<div class="sub" style="font-size:14px;padding:12px 0">No questions yet. Ask ${esc(n.author)} below.</div>`}
+            <div class="cmt-title">
+              <span class="label-caps">Questions &amp; answers · ${n.questions.length}</span>
+              ${n.questions.length ? '<span class="sub" style="font-size:12px">Tap a comment to reply</span>' : ''}
+            </div>
+            ${th.length
+              ? th.map((t) => `<div class="thread">${comment(t.root, false)}${t.replies.map((r) => comment(r, true)).join('')}</div>`).join('')
+              : `<div class="sub" style="font-size:14px;padding:12px 0">${mine ? 'No questions yet. People can ask you about this below.' : `No questions yet. Ask ${esc(n.author)} below.`}</div>`}
           </div>
         </div>
       </div>
-      <div class="ask"><form data-form="ask">
-        <label><input name="q" aria-label="Ask the author" maxlength="500" placeholder="Ask the author…" autocomplete="off"></label>
-        <button type="submit" class="icon-btn" aria-label="Send question">${icon.send}</button>
-        <button type="button" class="icon-btn" data-like-detail aria-label="Like" aria-pressed="${n.liked}">${icon.heart(n.liked ? 'currentColor' : 'none', 23)}</button>
-        <button type="button" class="icon-btn" data-save aria-label="Save" aria-pressed="${n.saved}">${icon.bookmark(n.saved ? 'currentColor' : 'none')}</button>
-      </form></div>
+      <div class="ask">
+        ${state.replyTo ? `<div class="replying"><span>Replying to <b>@${esc(state.replyTo.author)}</b></span><button type="button" class="icon-btn" data-cancel-reply aria-label="Cancel reply">${icon.x(14, 2.4)}</button></div>` : ''}
+        <form data-form="ask">
+          <label><input name="q" data-ask value="${esc(state.askText)}" aria-label="${esc(placeholder)}" maxlength="500" placeholder="${esc(placeholder)}" autocomplete="off"></label>
+          <button type="submit" class="icon-btn" aria-label="Send">${icon.send}</button>
+          <button type="button" class="icon-btn" data-like-detail aria-label="Like" aria-pressed="${n.liked}">${icon.heart(n.liked ? 'currentColor' : 'none', 23)}</button>
+          <button type="button" class="icon-btn" data-save aria-label="Save" aria-pressed="${n.saved}">${icon.bookmark(n.saved ? 'currentColor' : 'none')}</button>
+        </form>
+      </div>
     </div>`;
   }
 
   function viewTabs() {
-    const t = (k, label, svg) => `<button data-tab="${k}" aria-label="${label}" ${state.tab === k ? 'aria-current="page"' : ''}>${svg}</button>`;
+    const cur = state.tab === 'account' ? 'me' : state.tab;
+    const t = (k, label, svg) => `<button data-tab="${k}" aria-label="${label}" ${cur === k ? 'aria-current="page"' : ''}>${svg}</button>`;
     return `<div class="tabs"><nav aria-label="Main">
       ${t('home', 'Home', icon.home)}
       ${t('search', 'Search', icon.search())}
@@ -614,28 +1238,46 @@ module.exports = function seed() {
   }
 
   function render() {
-    if (!state.user) { $app.innerHTML = viewWelcome(); return; }
-    const screen = { home: viewHome, search: viewSearch, post: viewPost, me: viewMe }[state.tab]();
-    $app.innerHTML = screen + (state.tab !== 'post' ? viewTabs() : '') + (state.detail ? viewDetail() : '');
-    document.body.style.overflow = state.detail ? 'hidden' : '';
+    if (!state.account) {
+      $app.innerHTML = { welcome: viewWelcome, signup: viewSignup, login: viewLogin }[state.auth]();
+      document.body.style.overflow = '';
+      return;
+    }
+    const screen = { home: viewHome, search: viewSearch, post: viewPost, me: viewMe, account: viewAccount }[state.tab]();
+    $app.innerHTML = screen
+      + (state.tab !== 'post' ? viewTabs() : '')
+      + (state.detail ? viewDetail() : '')
+      + (state.sheet ? viewSheet() : '');
+    document.body.style.overflow = state.detail || state.sheet ? 'hidden' : '';
+  }
+
+  // 重新渲染后把光标放回原来的输入框
+  function renderKeepFocus() {
+    const el = document.activeElement;
+    const sel = el && (el.dataset.af ? `[data-af="${el.dataset.af}"]` : el.dataset.sf ? `[data-sf="${el.dataset.sf}"]` : null);
+    render();
+    if (sel) { const x = $app.querySelector(sel); if (x) x.focus(); }
   }
 
   // ---------- 动作 ----------
   async function go(tab) {
     state.tab = tab;
     state.detail = null;
+    state.sheet = null;
     render();
     window.scrollTo(0, 0);
     try {
       if (tab === 'home' || tab === 'search') await loadNotes();
-      if (tab === 'me') await loadMe();
+      if (tab === 'me' || tab === 'account') await loadMe();
       render();
-    } catch (e) { toast(e.message); }
+    } catch (e) { if (state.account) toast(e.message); }
   }
 
   async function openNote(id) {
     try {
       state.detail = await api('/api/notes/' + id);
+      state.replyTo = null;
+      state.askText = '';
       render();
       try { history.pushState({ note: id }, ''); pushed = true; } catch (e) { pushed = false; }
     } catch (e) { toast(e.message); }
@@ -643,10 +1285,11 @@ module.exports = function seed() {
 
   function closeNote() {
     state.detail = null;
+    state.replyTo = null;
     render();
   }
 
-  // 关闭详情：如果打开时加过历史记录，就用“返回”关掉，这样手机的返回手势也一致
+  // 关闭详情：如果打开时加过历史记录，就用"返回"关掉，这样手机的返回手势也一致
   function leaveDetail() {
     if (pushed) { pushed = false; history.back(); } else closeNote();
   }
@@ -658,6 +1301,43 @@ module.exports = function seed() {
       render();
       return n;
     } catch (e) { toast(e.message); }
+  }
+
+  function openSheet(kind) {
+    state.sheet = kind;
+    state.sheetForm = {};
+    state.sheetError = '';
+    render();
+    const first = $app.querySelector('.sheet input');
+    if (first) first.focus();
+  }
+
+  async function saveSheet(remove) {
+    const s = state.sheet;
+    const f = state.sheetForm;
+    const a = state.account;
+    state.busy = true;
+    state.sheetError = '';
+    render();
+    try {
+      if (s === 'email' || s === 'phone') {
+        const value = remove ? '' : (f[s] ?? a[s] ?? '').trim();
+        if (!remove && !value) throw new Error(s === 'email' ? 'Enter an email' : 'Enter a phone number');
+        state.account = await api('/api/account', { method: 'PATCH', body: { [s]: value || null, currentPassword: f.currentPassword }, noLogout: true });
+        toast(remove ? (s === 'email' ? 'Email removed' : 'Phone removed') : (s === 'email' ? 'Email saved' : 'Phone saved'));
+      } else if (s === 'password') {
+        state.account = await api('/api/account/password', { method: 'POST', body: { currentPassword: f.currentPassword, newPassword: f.newPassword }, noLogout: true });
+        toast('Password saved');
+      } else if (s === 'google-off') {
+        state.account = await api('/api/account/google', { method: 'DELETE', noLogout: true });
+        toast('Google disconnected');
+      }
+      state.sheet = null;
+    } catch (e) {
+      state.sheetError = e.message;
+    }
+    state.busy = false;
+    render();
   }
 
   // 把选的照片缩小到最长边 1280px 再上传，省流量
@@ -683,6 +1363,10 @@ module.exports = function seed() {
   $app.addEventListener('input', (e) => {
     const el = e.target;
     if (el.dataset.draft) state.draft[el.dataset.draft] = el.value;
+    // 开始改输入框了，旧的错误提示就收起来
+    if (el.dataset.af) { state.authForm[el.dataset.af] = el.value; if (state.authError) { state.authError = ''; $app.querySelectorAll('.err').forEach((x) => x.remove()); } }
+    if (el.dataset.sf) { state.sheetForm[el.dataset.sf] = el.value; if (state.sheetError) { state.sheetError = ''; $app.querySelectorAll('.sheet .err').forEach((x) => x.remove()); } }
+    if ('ask' in el.dataset) state.askText = el.value;
     if (el.dataset.input === 'query') {
       state.query = el.value;
       clearTimeout(searchTimer);
@@ -708,9 +1392,24 @@ module.exports = function seed() {
   });
 
   $app.addEventListener('click', async (e) => {
+    // 点面板外面的灰色区域 = 关闭
+    if (e.target.matches('[data-sheet-close]')) { state.sheet = null; return render(); }
     const el = e.target.closest('button');
     if (!el) return;
     const d = el.dataset;
+
+    // ----- 未登录页面 -----
+    if (d.authGo) {
+      state.auth = d.authGo;
+      if (d.method) state.authMethod = d.method;
+      state.authError = '';
+      return render();
+    }
+    if (d.method) { state.authMethod = d.method; state.authError = ''; return renderKeepFocus(); }
+    if ('togglePw' in d) { state.showPassword = !state.showPassword; return renderKeepFocus(); }
+    if (d.google) return startGoogle(d.google);
+
+    // ----- 登录后 -----
     if (d.tab) return go(d.tab);
     if (d.open) return openNote(Number(d.open));
     if ('close' in d) return leaveDetail();
@@ -736,6 +1435,15 @@ module.exports = function seed() {
       if (n) toast(n.saved ? 'Saved to your profile' : 'Removed from saved');
       return;
     }
+    if (d.reply) {
+      // 点评论 = 回复它；再点一次取消
+      const id = Number(d.reply);
+      state.replyTo = state.replyTo && state.replyTo.id === id ? null : { id, author: d.replyAuthor };
+      render();
+      if (state.replyTo) $app.querySelector('[data-ask]').focus();
+      return;
+    }
+    if ('cancelReply' in d) { state.replyTo = null; return render(); }
     if (d.follow) {
       try {
         const r = await api(`/api/users/${encodeURIComponent(d.follow)}/follow`, { method: 'POST' });
@@ -757,17 +1465,18 @@ module.exports = function seed() {
       if (dr.title || dr.body || dr.photos.length) toast('Draft kept');
       return go('home');
     }
+    if (d.sheet) return openSheet(d.sheet);
+    if ('sheetCancel' in d) { state.sheet = null; return render(); }
+    if (d.sheetRemove) return saveSheet(true);
+    if ('logout' in d) {
+      try { await api('/api/auth/logout', { method: 'POST', noLogout: true }); } catch (err) { /* 本地照样退出 */ }
+      return signedOut();
+    }
     if ('reset' in d) {
       window.TROVE_LOCAL_RESET();
       state.draft = emptyDraft();
       toast('Demo data reset');
-      return go('me');
-    }
-    if ('logout' in d) {
-      storage.remove('trove.user');
-      state.user = '';
-      state.me = null;
-      return render();
+      return signedOut();
     }
   });
 
@@ -775,17 +1484,39 @@ module.exports = function seed() {
     e.preventDefault();
     const form = e.target;
     const kind = form.dataset.form;
+    const f = state.authForm;
 
-    if (kind === 'welcome') {
-      const name = form.elements.name.value.trim().toLowerCase();
-      if (!/^[a-z0-9._]{2,20}$/.test(name)) {
-        form.querySelector('[data-err]').textContent = '2–20 characters: lowercase letters, numbers, . or _';
-        return;
+    if (kind === 'signup' || kind === 'login') {
+      if (state.busy) return;
+      let body;
+      if (kind === 'signup') {
+        const username = f.username.trim().toLowerCase();
+        if (!/^[a-z0-9._]{2,20}$/.test(username)) { state.authError = 'Username: 2–20 characters, lowercase letters, numbers, . or _'; return renderKeepFocus(); }
+        if (state.authMethod === 'email' && !f.email.trim()) { state.authError = 'Enter your email'; return renderKeepFocus(); }
+        if (state.authMethod === 'phone' && !f.phone.trim()) { state.authError = 'Enter your phone number'; return renderKeepFocus(); }
+        if (f.password.length < 8) { state.authError = 'Password must be at least 8 characters'; return renderKeepFocus(); }
+        body = { username, password: f.password, [state.authMethod]: f[state.authMethod].trim() };
+      } else {
+        if (!f.id.trim() || !f.password) { state.authError = 'Enter your login and password'; return renderKeepFocus(); }
+        body = { id: f.id.trim(), password: f.password };
       }
-      state.user = name;
-      storage.set('trove.user', name);
-      return go('home');
+      state.busy = true;
+      state.authError = '';
+      render();
+      try {
+        const r = await api(kind === 'signup' ? '/api/auth/signup' : '/api/auth/login', { method: 'POST', body, noLogout: true });
+        state.busy = false;
+        signedIn(r);
+        toast(kind === 'signup' ? 'Welcome to trove, @' + r.account.username : 'Welcome back');
+      } catch (err) {
+        state.busy = false;
+        state.authError = err.message;
+        render();
+      }
+      return;
     }
+
+    if (kind === 'sheet') return saveSheet(false);
 
     if (kind === 'post') {
       if (state.busy) return;
@@ -807,21 +1538,55 @@ module.exports = function seed() {
     }
 
     if (kind === 'ask') {
-      const text = form.elements.q.value.trim();
+      const text = state.askText.trim();
       if (!text) return;
-      const n = await act(`/api/notes/${state.detail.id}/questions`, { text });
-      if (n) toast('Question sent');
+      const replying = state.replyTo;
+      const n = await act(`/api/notes/${state.detail.id}/questions`, { text, replyTo: replying ? replying.id : null });
+      if (n) {
+        state.askText = '';
+        state.replyTo = null;
+        render();
+        toast(replying ? 'Reply sent' : 'Sent');
+      }
     }
   });
 
-  // 手机上的“返回”手势关闭详情页
+  // 手机上的"返回"手势关闭详情页
   window.addEventListener('popstate', () => { pushed = false; if (state.detail) closeNote(); });
 
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && state.detail) leaveDetail();
+    if (e.key !== 'Escape') return;
+    if (state.sheet) { state.sheet = null; render(); } else if (state.detail) leaveDetail();
   });
 
-  if (state.user) go('home'); else render();
+  // ---------- 启动 ----------
+  async function boot() {
+    // Google 登录回来时，结果放在网址 # 后面
+    const h = new URLSearchParams(location.hash.slice(1));
+    let after = null;
+    if (h.get('auth')) { state.token = h.get('auth'); storage.set('trove.token', state.token); }
+    if (h.get('auth_error')) state.authError = h.get('auth_error');
+    if (h.get('linked')) after = 'linked';
+    if ([...h.keys()].some((k) => ['auth', 'auth_error', 'linked'].includes(k))) {
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (e) { /* ignore */ }
+    }
+
+    try { state.config = await api('/api/config'); } catch (e) { /* 用默认值 */ }
+
+    if (state.token) {
+      try {
+        state.account = await api('/api/account', { noLogout: true });
+      } catch (e) {
+        state.token = '';
+        storage.remove('trove.token');
+      }
+    }
+    if (!state.account) return render();
+    if (after === 'linked') { toast('Google connected'); return go('account'); }
+    go('home');
+  }
+
+  boot();
 })();
 
 </script>

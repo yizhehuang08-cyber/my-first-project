@@ -15,7 +15,7 @@ let html = read('public/index.html')
   .replace(/<link rel="preconnect"[^>]*>\n/, '')
   .replace('<link rel="stylesheet" href="/app.css">', () => `<style>\n${read('public/app.css')}\n</style>`)
   .replace('<script src="/app.js"></script>', () =>
-    `<script>\n${safe(seed)}\n</script>\n<script>\n${safe(read('public/local-api.js'))}\n</script>\n<script>\n${safe(read('public/app.js'))}\n</script>`);
+    `<script>\n${safe(seed)}\n</script>\n<script>\n${safe(read('src/core.js'))}\n</script>\n<script>\n${safe(read('public/local-api.js'))}\n</script>\n<script>\n${safe(read('public/app.js'))}\n</script>`);
 
 fs.mkdirSync(path.join(root, 'dist'), { recursive: true });
 const out = path.join(root, 'dist', 'trove-demo.html');

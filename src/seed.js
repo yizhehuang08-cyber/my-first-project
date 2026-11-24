@@ -28,5 +28,18 @@ module.exports = function seed() {
     questions: [],
     createdAt: new Date(start - i * 3600 * 1000).toISOString()
   }));
-  return { lastId: notes.length, notes, users: {} };
+  // 示例对话：一个提问 + 作者的回复
+  const ramen = notes.find((n) => n.author === 'jt.eats');
+  ramen.questions = [
+    { id: 8, author: 'amy.l', text: 'Do they take cards or is it cash only?', replyTo: null, createdAt: '2026-11-21T02:00:00.000Z' },
+    { id: 9, author: 'jt.eats', text: 'Cards are fine. Tap to pay works too.', replyTo: 8, createdAt: '2026-11-21T02:30:00.000Z' }
+  ];
+  // 示例作者的用户名先占上（没有任何登录方式，别人不能冒用）。
+  // ryan.h 不占：那是你自己的示例帖子，你注册 ryan.h 就能拥有它。
+  const users = {};
+  for (const name of new Set(notes.map((n) => n.author).concat('amy.l'))) {
+    if (name === 'ryan.h') continue;
+    users[name] = { name, email: null, phone: null, pass: null, google: null, saved: [], following: [], createdAt: notes[0].createdAt };
+  }
+  return { lastId: 9, notes, users, sessions: {} };
 };
